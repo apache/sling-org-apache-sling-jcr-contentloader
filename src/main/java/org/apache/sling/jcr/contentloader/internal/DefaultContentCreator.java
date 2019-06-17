@@ -24,6 +24,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -44,6 +45,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -281,8 +283,8 @@ public class DefaultContentCreator implements ContentCreator {
      */
     public void createProperty(String name, int propertyType, String value) throws RepositoryException {
         final Node node = this.parentNodeStack.peek();
-        // check if the property already exists and isPropertyOverwrite() is false, don't overwrite it in this case
-        if (node.hasProperty(name) && !this.configuration.isPropertyOverwrite() && !node.getProperty(name).isNew()) {
+        // check if the property is not reserved or does not already exist and isPropertyOverwrite() is false, don't overwrite it in this case
+        if (isReservedProperty(node,name) || (node.hasProperty(name) && !this.configuration.isPropertyOverwrite() && !node.getProperty(name).isNew())) {
             return;
         }
 
@@ -330,8 +332,8 @@ public class DefaultContentCreator implements ContentCreator {
      */
     public void createProperty(String name, int propertyType, String[] values) throws RepositoryException {
         final Node node = this.parentNodeStack.peek();
-        // check if the property already exists and isPropertyOverwrite() is false, don't overwrite it in this case
-        if (node.hasProperty(name) && !this.configuration.isPropertyOverwrite() && !node.getProperty(name).isNew()) {
+        // check if the property is not reserved, or if already exists and isPropertyOverwrite() is false, don't overwrite it in this case
+        if (isReservedProperty(node, name) ||  (node.hasProperty(name) && !this.configuration.isPropertyOverwrite() && !node.getProperty(name).isNew())) {
             return;
         }
         if (propertyType == PropertyType.REFERENCE) {
@@ -567,8 +569,8 @@ public class DefaultContentCreator implements ContentCreator {
 
     private void createProperty(String name, Object value, boolean overwriteExisting) throws RepositoryException {
         final Node node = this.parentNodeStack.peek();
-        // check if the property already exists, don't overwrite it in this case
-        if (node.hasProperty(name) && !node.getProperty(name).isNew() && !overwriteExisting) {
+        // check if the property is not reserved or if already exists, don't overwrite it in this case
+        if (isReservedProperty(node, name) || (node.hasProperty(name) && !node.getProperty(name).isNew() && !overwriteExisting)) {
             return;
         }
         if (value == null) {
@@ -592,8 +594,8 @@ public class DefaultContentCreator implements ContentCreator {
 
     private void createProperty(String name, Object[] values, boolean overwriteExisting) throws RepositoryException {
         final Node node = this.parentNodeStack.peek();
-        // check if the property already exists, don't overwrite it in this case
-        if (node.hasProperty(name) && !node.getProperty(name).isNew() && !overwriteExisting) {
+        // check if the property is not reserved, or if already exists, don't overwrite it in this case
+        if (isReservedProperty(node, name) || (node.hasProperty(name) && !node.getProperty(name).isNew() && !overwriteExisting)) {
             return;
         }
         if (values == null || values.length == 0) {
@@ -814,9 +816,9 @@ public class DefaultContentCreator implements ContentCreator {
         PrincipalManager principalManager = AccessControlUtil.getPrincipalManager(session);
         Principal principal = principalManager.getPrincipal(principalId);
         if (principal == null) {
-            // SLING-7268 - as pointed out in OAK-5496, we cannot successfully use PrincipalManager#getPrincipal in oak 
-        	//  without the session that created the principal getting saved first (and a subsequent index update).  
-        	//  Workaround by trying the UserManager#getAuthorizable API to locate the principal. 
+            // SLING-7268 - as pointed out in OAK-5496, we cannot successfully use PrincipalManager#getPrincipal in oak
+        	//  without the session that created the principal getting saved first (and a subsequent index update).
+        	//  Workaround by trying the UserManager#getAuthorizable API to locate the principal.
             UserManager userManager = AccessControlUtil.getUserManager(session);
             final Authorizable authorizable = userManager.getAuthorizable(principalId);
             if (authorizable != null) {
@@ -830,7 +832,7 @@ public class DefaultContentCreator implements ContentCreator {
         String resourcePath = parentNode.getPath();
 
         if ((grantedPrivilegeNames != null) || (deniedPrivilegeNames != null)) {
-            AccessControlUtil.replaceAccessControlEntry(session, resourcePath, principal, grantedPrivilegeNames, deniedPrivilegeNames, null, order, 
+            AccessControlUtil.replaceAccessControlEntry(session, resourcePath, principal, grantedPrivilegeNames, deniedPrivilegeNames, null, order,
             		restrictions, mvRestrictions, removedRestrictionNames);
         }
 	}
@@ -906,7 +908,7 @@ public class DefaultContentCreator implements ContentCreator {
                 if (!versionableNode.isCheckedOut()) {
                 	VersionManager versionManager = versionableNode.getSession().getWorkspace().getVersionManager();
                 	versionManager.checkout(versionableNode.getPath());
-                	
+
                     if (this.importListener != null) {
                         this.importListener.onCheckout(versionableNode.getPath());
                     }
@@ -915,4 +917,21 @@ public class DefaultContentCreator implements ContentCreator {
         }
     }
 
+    /**
+     * Check if property is an internal JCR property
+     * @param node Node
+     * @param propertyName property name
+     * @return true if propertyName is a reserved internal property
+     * @throws RepositoryException
+     */
+    private boolean isReservedProperty(Node node,  String propertyName) throws RepositoryException {
+        return containsReservedName(node.getPrimaryNodeType().getPropertyDefinitions(), propertyName)
+            || Arrays.stream(node.getMixinNodeTypes())
+                .anyMatch(nodeType -> containsReservedName(nodeType.getPropertyDefinitions(), propertyName));
+    }
+
+    private boolean containsReservedName(PropertyDefinition[] propertyDefinitions, String name) {
+        return Arrays.stream(propertyDefinitions)
+                .anyMatch(propertyDefinition -> propertyDefinition.getName().equals(name));
+    }
 }

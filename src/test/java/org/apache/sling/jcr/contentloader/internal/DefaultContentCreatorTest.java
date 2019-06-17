@@ -16,13 +16,28 @@
  */
 package org.apache.sling.jcr.contentloader.internal;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.text.ParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Stack;
+import java.util.UUID;
 
-import javax.jcr.*;
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.PropertyDefinition;
 
-import junitx.util.PrivateAccessor;
 import org.apache.sling.commons.testing.jcr.RepositoryProvider;
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.contentloader.ContentImportListener;
@@ -36,7 +51,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.junit.Assert.*;
+import junitx.util.PrivateAccessor;
 
 public class DefaultContentCreatorTest {
 
@@ -74,6 +89,7 @@ public class DefaultContentCreatorTest {
     public void willRewriteUndefinedPropertyType() throws RepositoryException {
         parentNode = mockery.mock(Node.class);
         prop = mockery.mock(Property.class);
+        NodeType nodeType = mockery.mock(NodeType.class);
         contentCreator.init(ImportOptionsFactory.createImportOptions(true, true, true, false, false),
                 new HashMap<String, ContentReader>(), null, null);
 
@@ -83,6 +99,9 @@ public class DefaultContentCreatorTest {
         	allowing(parentNode).getParent(); will(returnValue(null));
             oneOf (parentNode).hasProperty("foo"); will(returnValue(Boolean.TRUE));
             oneOf (parentNode).setProperty(with(equal("foo")), with(equal("bar")));
+            oneOf(parentNode).getPrimaryNodeType(); will(returnValue(nodeType));
+            oneOf(parentNode).getMixinNodeTypes(); will(returnValue(new NodeType[]{}));
+            oneOf(nodeType).getPropertyDefinitions(); will(returnValue(new PropertyDefinition[]{}));
         }});
         contentCreator.createProperty("foo", PropertyType.UNDEFINED, "bar");
     }
@@ -91,6 +110,8 @@ public class DefaultContentCreatorTest {
     public void willNotRewriteUndefinedPropertyType() throws RepositoryException {
         parentNode = mockery.mock(Node.class);
         prop = mockery.mock(Property.class);
+        NodeType nodeType = mockery.mock(NodeType.class);
+
         contentCreator.init(ImportOptionsFactory.createImportOptions(false, false, true, false, false),
                 new HashMap<String, ContentReader>(), null, null);
 
@@ -99,6 +120,9 @@ public class DefaultContentCreatorTest {
             oneOf (parentNode).hasProperty("foo"); will(returnValue(Boolean.TRUE));
             oneOf (parentNode).getProperty("foo"); will(returnValue(prop));
             oneOf (prop).isNew(); will(returnValue(Boolean.FALSE));
+            oneOf(parentNode).getPrimaryNodeType(); will(returnValue(nodeType));
+            oneOf(parentNode).getMixinNodeTypes(); will(returnValue(new NodeType[]{}));
+            oneOf(nodeType).getPropertyDefinitions(); will(returnValue(new PropertyDefinition[]{}));
         }});
         contentCreator.createProperty("foo", PropertyType.UNDEFINED, "bar");
     }
@@ -108,10 +132,14 @@ public class DefaultContentCreatorTest {
         final String propertyName = "foo";
         prop = mockery.mock(Property.class);
         parentNode = mockery.mock(Node.class);
+        NodeType nodeType = mockery.mock(NodeType.class);
 
         this.mockery.checking(new Expectations(){{
             oneOf(parentNode).hasProperty(propertyName); will(returnValue(true));
             oneOf(parentNode).getProperty(propertyName); will(returnValue(prop));
+            oneOf(parentNode).getPrimaryNodeType(); will(returnValue(nodeType));
+            oneOf(parentNode).getMixinNodeTypes(); will(returnValue(new NodeType[]{}));
+            oneOf(nodeType).getPropertyDefinitions(); will(returnValue(new PropertyDefinition[]{}));
             oneOf(prop).isNew(); will(returnValue(false));
         }});
         contentCreator.init(ImportOptionsFactory.createImportOptions(false, false, false, false, false),
@@ -133,6 +161,7 @@ public class DefaultContentCreatorTest {
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
         parentNode = mockery.mock(Node.class);
         prop = mockery.mock(Property.class);
+        NodeType nodeType = mockery.mock(NodeType.class);
 
         this.mockery.checking(new Expectations(){{
             oneOf(session).itemExists(with(any(String.class))); will(returnValue(true));
@@ -146,6 +175,9 @@ public class DefaultContentCreatorTest {
             oneOf(parentNode).hasProperty(with(any(String.class)));
             oneOf(parentNode).setProperty(propertyName, uuid, PropertyType.REFERENCE);
             oneOf(parentNode).getProperty(with(any(String.class)));
+            oneOf(parentNode).getPrimaryNodeType(); will(returnValue(nodeType));
+            oneOf(parentNode).getMixinNodeTypes(); will(returnValue(new NodeType[]{}));
+            oneOf(nodeType).getPropertyDefinitions(); will(returnValue(new PropertyDefinition[]{}));
             oneOf(listener).onCreate(with(any(String.class)));
         }});
 
@@ -160,9 +192,13 @@ public class DefaultContentCreatorTest {
     @Test
     public void testCreateFalseCheckedOutPreperty() throws RepositoryException {
         parentNode = mockery.mock(Node.class);
+        NodeType nodeType = mockery.mock(NodeType.class);
 
         this.mockery.checking(new Expectations(){{
             oneOf(parentNode).hasProperty(with(any(String.class)));
+            oneOf(parentNode).getPrimaryNodeType(); will(returnValue(nodeType));
+            oneOf(parentNode).getMixinNodeTypes(); will(returnValue(new NodeType[]{}));
+            oneOf(nodeType).getPropertyDefinitions(); will(returnValue(new PropertyDefinition[]{}));
         }});
 
         contentCreator.init(ImportOptionsFactory.createImportOptions(false, false, false, false, false),
@@ -179,9 +215,13 @@ public class DefaultContentCreatorTest {
     @Test
     public void testCreateTrueCheckedOutPreperty() throws RepositoryException {
         parentNode = mockery.mock(Node.class);
+        NodeType nodeType = mockery.mock(NodeType.class);
 
         this.mockery.checking(new Expectations(){{
             oneOf(parentNode).hasProperty(with(any(String.class)));
+            oneOf(parentNode).getPrimaryNodeType(); will(returnValue(nodeType));
+            oneOf(parentNode).getMixinNodeTypes(); will(returnValue(new NodeType[]{}));
+            oneOf(nodeType).getPropertyDefinitions(); will(returnValue(new PropertyDefinition[]{}));
         }});
 
         contentCreator.init(ImportOptionsFactory.createImportOptions(false, false, false, false, false),
@@ -202,11 +242,15 @@ public class DefaultContentCreatorTest {
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
         parentNode = mockery.mock(Node.class);
         prop = mockery.mock(Property.class);
+        NodeType nodeType = mockery.mock(NodeType.class);
 
         this.mockery.checking(new Expectations(){{
             oneOf(parentNode).hasProperty(with(any(String.class)));
             oneOf(parentNode).setProperty(with(any(String.class)), with(any(Calendar.class)));
             oneOf(parentNode).getProperty(with(any(String.class))); will(returnValue(prop));
+            oneOf(parentNode).getPrimaryNodeType(); will(returnValue(nodeType));
+            oneOf(parentNode).getMixinNodeTypes(); will(returnValue(new NodeType[]{}));
+            oneOf(nodeType).getPropertyDefinitions(); will(returnValue(new PropertyDefinition[]{}));
             oneOf(prop).getPath(); will(returnValue(""));
             oneOf(listener).onCreate(with(any(String.class)));
         }});
@@ -227,11 +271,15 @@ public class DefaultContentCreatorTest {
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
         parentNode = mockery.mock(Node.class);
         prop = mockery.mock(Property.class);
+        NodeType nodeType = mockery.mock(NodeType.class);
 
         this.mockery.checking(new Expectations(){{
             oneOf(parentNode).hasProperty(with(any(String.class)));
             oneOf(parentNode).getProperty(propertyName); will(returnValue(prop));
             oneOf(parentNode).setProperty(propertyName, propertyValue, propertyType);
+            oneOf(parentNode).getPrimaryNodeType(); will(returnValue(nodeType));
+            oneOf(parentNode).getMixinNodeTypes(); will(returnValue(new NodeType[]{}));
+            oneOf(nodeType).getPropertyDefinitions(); will(returnValue(new PropertyDefinition[]{}));
             oneOf(prop).getPath(); will(returnValue(""));
             oneOf(listener).onCreate(with(any(String.class)));
         }});
