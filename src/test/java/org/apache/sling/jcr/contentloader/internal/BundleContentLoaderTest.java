@@ -108,7 +108,6 @@ public class BundleContentLoaderTest {
     private AccessControlEntry[] createFolderNodeAndACL(String path) throws RepositoryException {
         // use JCR API to add some node and acl
         Session session = context.resourceResolver().adaptTo(Session.class);
-
         Privilege customPrivilege = getOrRegisterCustomPrivilege(session);
         Privilege[] customPrivilegeSingleItemArray = new Privilege[]{ customPrivilege };
 
@@ -120,6 +119,7 @@ public class BundleContentLoaderTest {
         assertTrue(acl.addAccessControlEntry(everyone, customPrivilegeSingleItemArray));
         AccessControlEntry[] expectedAces = acl.getAccessControlEntries();
         acMgr.setPolicy(path, acl);
+        
         session.save();
         return expectedAces;
     }
@@ -138,8 +138,6 @@ public class BundleContentLoaderTest {
     @Test
     public void loadContentOverwriteWithoutPath() throws Exception {
         AccessControlEntry[] expectedAces = createFolderNodeAndACL("/apps/child");
-        
-        // import without path
         BundleContentLoader contentLoader = new BundleContentLoader(bundleHelper, whiteboard, null);
         Bundle mockBundle = newBundleWithInitialContent(context, "SLING-INF2;overwrite:=true");
         contentLoader.registerBundle(context.resourceResolver().adaptTo(Session.class), mockBundle, false);
@@ -151,8 +149,6 @@ public class BundleContentLoaderTest {
     @Test
     public void loadContentOverwriteWithRootPath() throws Exception {
         AccessControlEntry[] expectedAces = createFolderNodeAndACL("/apps/child");
-        
-        // import without path
         BundleContentLoader contentLoader = new BundleContentLoader(bundleHelper, whiteboard, null);
         Bundle mockBundle = newBundleWithInitialContent(context, "SLING-INF2;overwrite:=true;path:=/");
         contentLoader.registerBundle(context.resourceResolver().adaptTo(Session.class), mockBundle, false);
@@ -164,8 +160,6 @@ public class BundleContentLoaderTest {
     @Test
     public void loadContentOverwriteWith2ndLevelPath() throws Exception {
         AccessControlEntry[] expectedAces = createFolderNodeAndACL("/apps/child");
-        
-        // import without path
         BundleContentLoader contentLoader = new BundleContentLoader(bundleHelper, whiteboard, null);
         Bundle mockBundle = newBundleWithInitialContent(context, "SLING-INF2/apps;overwrite:=true;path:=/apps");
         contentLoader.registerBundle(context.resourceResolver().adaptTo(Session.class), mockBundle, false);
