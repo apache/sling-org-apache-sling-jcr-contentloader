@@ -260,6 +260,10 @@ public class BundleContentLoader extends BaseImportLoader {
                     continue;
                 }
 
+                if (pathEntry.isOverwrite() && (pathEntry.getTarget() == null || "/".equals(pathEntry.getTarget()))) {
+                    log.error("Path {} tries to overwrite on the repository root level which is not allowed, only use overwrite with a dedicated path directive having any value but '/'", pathEntry.getPath());
+                    continue;
+                }
                 if (!contentAlreadyLoaded || pathEntry.isOverwrite()) {
                     String workspace = pathEntry.getWorkspace();
                     final Session targetSession;
@@ -274,7 +278,7 @@ public class BundleContentLoader extends BaseImportLoader {
                         targetSession = defaultSession;
                     }
 
-                    final Node targetNode = getTargetNode(targetSession, pathEntry.getTarget());
+                    final Node targetNode = getTargetNode(targetSession, pathEntry.getTarget(), pathEntry.isOverwrite());
 
                     if (targetNode != null) {
                         installFromPath(bundle, pathEntry.getPath(), pathEntry, targetNode,
@@ -635,7 +639,7 @@ public class BundleContentLoader extends BaseImportLoader {
         return name;
     }
 
-    private Node getTargetNode(Session session, String path) throws RepositoryException {
+    private Node getTargetNode(Session session, String path, boolean overwrite) throws RepositoryException {
 
         // not specified path directive
         if (path == null) {
@@ -658,9 +662,19 @@ public class BundleContentLoader extends BaseImportLoader {
                 currentNode = currentNode.getNode(name);
             }
             return currentNode;
+        } else {
+            Item item = session.getItem(path);
+            if (!item.isNode()) {
+                log.warn("Cannot use item as target path {} as this is an existing property", path);
+                return null;
+            }
+            Node targetNode = session.getNode(path);
+            // overwrite target node itself?
+            if (overwrite) {
+                targetNode = createFolder(targetNode.getParent(), targetNode.getName(), true);
+            }
+            return targetNode;
         }
-        Item item = session.getItem(path);
-        return (item.isNode()) ? (Node) item : null;
     }
 
     private void uninstallContent(final Session defaultSession, final Bundle bundle, final String[] uninstallPaths) {
