@@ -20,6 +20,7 @@ package org.apache.sling.jcr.contentloader.internal;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.URL;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -45,19 +46,20 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
-
 @Component(service=javax.servlet.Servlet.class,
     property = {
         Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
         Constants.SERVICE_DESCRIPTION + "=Apache Sling JCR Content Loader Web Console Plugin",
         "felix.webconsole.label=" + ContentLoaderWebConsolePlugin.LABEL,
         "felix.webconsole.title=JCR Content Loader",
-        "felix.webconsole.category=Sling"
+        "felix.webconsole.category=Sling",
+        "felix.webconsole.css=" + ContentLoaderWebConsolePlugin.RES_LOC + "main.css"
     })
 @SuppressWarnings("serial")
 public class ContentLoaderWebConsolePlugin extends GenericServlet {
 
     public static final String LABEL = "jcr-content-loader";
+    protected static final String RES_LOC = LABEL + "/res/ui/";
 
     @Reference
     SlingRepository repository;
@@ -66,11 +68,12 @@ public class ContentLoaderWebConsolePlugin extends GenericServlet {
     BundleHelper bundleHelper;
 
     BundleContext context;
-    
+
     @Activate()
     private void activate(BundleContext context) {
         this.context = context;
     }
+
     @Override
     public void service(final ServletRequest req, final ServletResponse res)
             throws IOException {
@@ -81,7 +84,7 @@ public class ContentLoaderWebConsolePlugin extends GenericServlet {
             pw.print("<p class='statline ui-state-highlight'>Apache Sling JCR Content Loader");
             pw.print("</p>");
             pw.println("<table class='nicetable'><thead>");
-            pw.println("<tr><th>Bundle</th><th>Path Entries</th><th>Sling-Initial-Content Bundle Header</th><th>Content Loaded?</th><th>Uninstall Paths (format: JCR workspace:path)</th></tr>");
+            pw.println("<tr><th>Bundle</th><th>Path Entries</th><th>Content Loaded?</th><th>Uninstall Paths (format: JCR workspace:path)</th></tr>");
             pw.println("</thead><tbody>");
             int bundleNo = 1;
             for (final Bundle bundle : context.getBundles()) {
@@ -107,16 +110,14 @@ public class ContentLoaderWebConsolePlugin extends GenericServlet {
                     }
                     // https://felix.apache.org/documentation/subprojects/apache-felix-web-console/extending-the-apache-felix-web-console/providing-web-console-plugins.html
                     String bundleLink = req.getAttribute("felix.webconsole.appRoot") + "/bundles/" + bundle.getBundleId();
-                    
                     String pathEntriesString = StreamSupport.stream(Spliterators.spliteratorUnknownSize(PathEntry.getContentPaths(bundle), Spliterator.ORDERED), false)
                             .map(ContentLoaderWebConsolePlugin::printPathEntryTable).collect(Collectors.joining("\n"));
                     String trClass = (bundleNo++ % 2 == 0 ? "even" : "odd") + " ui-state-default";
-                    pw.printf("<tr class='%s'><td><a href=\"%s\">%s (%d)</a></td><td>%s</td><td>%s</td><td>%s<br/>(%s)</td><td>%s</td></tr>",
+                    pw.printf("<tr class='%s'><td><a href=\"%s\">%s (%d)</a></td><td>%s</td><td>%s<br/>(%s)</td><td>%s</td></tr>",
                             trClass,
                             bundleLink,
                             ResponseUtil.escapeXml(bundle.getSymbolicName()), bundle.getBundleId(),
                             pathEntriesString,
-                            ResponseUtil.escapeXml(contentHeader).replace(",", ",<br/>"),
                             contentInfoMap.get(BundleContentLoaderListener.PROPERTY_CONTENT_LOADED),
                             ResponseUtil.escapeXml(loadedDateString),
                             uninstallPathsString);
@@ -136,13 +137,14 @@ public class ContentLoaderWebConsolePlugin extends GenericServlet {
     static String printPathEntryTable(PathEntry entry) {
         StringBuilder sb = new StringBuilder();
         int row = 1;
-        sb.append("<table class='nicetable'><tbody>");
-        printPathEntryTableRow(sb, "Source Path", ResponseUtil.escapeXml(entry.getPath()), row++);
+        sb.append("<table class='nicetable nested'><thead>");
+        sb.append("<tr><th>Path</th><th>").append(ResponseUtil.escapeXml(entry.getPath())).append("</th><tr>");
+        sb.append("</thead><tbody>");
         printPathEntryTableRow(sb, "Target Path", ResponseUtil.escapeXml(entry.getTarget()), row++);
         // most important directives
         printPathEntryTableRow(sb, "Overwrite", Boolean.toString(entry.isOverwrite()), row++);
         printPathEntryTableRow(sb, "Uninstall", Boolean.toString(entry.isUninstall()), row++);
-        printPathEntryTableRow(sb, "Ignored Content Readers", ResponseUtil.escapeXml(String.join(", ", entry.getIgnoredContentReaders())), row++);
+        printPathEntryTableRow(sb, "Ignored Content Readers", ResponseUtil.escapeXml(String.join(", ", entry.getIgnoredContentReaders())), row);
         sb.append("</tbody></table>");
         return sb.toString();
     }
@@ -152,4 +154,19 @@ public class ContentLoaderWebConsolePlugin extends GenericServlet {
         sb.append("<tr class='").append(trClass).append("'><td>").append(name).append("</td><td>").append(value).append("</td></tr>");
     }
 
+    /**
+     * Method to retrieve static resources from this bundle.
+     */
+    @SuppressWarnings("unused")
+    private URL getResource(final String path) {
+        if (path.startsWith("/" + RES_LOC)) {
+            // strip label
+            int index = path.indexOf('/', 1);
+            if (index <= 0) {
+                throw new IllegalStateException("The relativeResourcePrefix must contain at least one '/'");
+            }
+            return this.getClass().getResource(path.substring(index));
+        }
+        return null;
+    }
 }
