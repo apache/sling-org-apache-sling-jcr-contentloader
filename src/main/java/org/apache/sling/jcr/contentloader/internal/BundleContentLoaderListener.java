@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
  * </ul>
  *
  */
-@Component(service = {}, property = { Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
+@Component(service = {BundleHelper.class}, property = { Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
         Constants.SERVICE_DESCRIPTION
                 + "=Apache Sling Content Loader Implementation" }, configurationPolicy = ConfigurationPolicy.OPTIONAL)
 @Designate(ocd = BundleContentLoaderConfiguration.class, factory = false)

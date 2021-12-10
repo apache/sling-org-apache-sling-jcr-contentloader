@@ -21,9 +21,11 @@ package org.apache.sling.jcr.contentloader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Dictionary;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.function.Function;
 import java.util.jar.Manifest;
@@ -335,6 +337,9 @@ public class PathEntry extends ImportOptions {
         return this.ignoreContentReaders.contains(extension);
     }
 
+    public Set<String> getIgnoredContentReaders() {
+        return new HashSet<>(ignoreContentReaders);
+    }
     public String getTarget() {
         return target;
     }
