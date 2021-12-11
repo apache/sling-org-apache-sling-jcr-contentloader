@@ -19,25 +19,33 @@
 package org.apache.sling.jcr.contentloader;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Dictionary;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.function.Function;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 
 import org.apache.sling.commons.osgi.ManifestHeader;
+import org.apache.sling.commons.osgi.ManifestHeader.NameValuePair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.Bundle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A path entry from the manifest for initial content.
  */
 public class PathEntry extends ImportOptions {
+
+    private static final Logger log = LoggerFactory.getLogger(PathEntry.class);
 
     /** The manifest header to specify initial content to be loaded. */
     public static final String CONTENT_HEADER = "Sling-Initial-Content";
@@ -100,6 +108,20 @@ public class PathEntry extends ImportOptions {
      */
     public static final String IGNORE_CONTENT_READERS_DIRECTIVE = "ignoreImportProviders";
 
+    /** All directive names which are valid for header Sling-Initial-Content */
+    public Set<String> VALID_DIRECTIVES = new HashSet<>(Arrays.asList(
+        OVERWRITE_DIRECTIVE,
+        OVERWRITE_PROPERTIES_DIRECTIVE,
+        MERGE_PROPERTIES_DIRECTIVE,
+        MERGE_NODES_DIRECTIVE,
+        UNINSTALL_DIRECTIVE,
+        PATH_DIRECTIVE,
+        WORKSPACE_DIRECTIVE,
+        CHECKIN_DIRECTIVE,
+        AUTOCHECKOUT_DIRECTIVE,
+        IGNORE_CONTENT_READERS_DIRECTIVE
+    ));
+
     private final boolean propertyMerge;
     
     private final boolean nodeMerge;
@@ -156,7 +178,7 @@ public class PathEntry extends ImportOptions {
      * @return an iterator over the parsed {@code PathEntry} items or {@code null} in case no "Sling-Initial-Content" header was found in the bundle's manifest
      */
     public static @Nullable Iterator<PathEntry> getContentPaths(final Bundle bundle) {
-        return getContentPaths(toMap(bundle.getHeaders()), bundle.getLastModified());
+        return getContentPaths(toMap(bundle.getHeaders()), bundle.getLastModified(), bundle.getSymbolicName());
     }
 
     /** 
@@ -167,6 +189,10 @@ public class PathEntry extends ImportOptions {
      * @return an iterator over the parsed {@code PathEntry} items or {@code null} in case no "Sling-Initial-Content" header was found
      */
     public static @Nullable Iterator<PathEntry> getContentPaths(final Map<String, String> headers, long bundleLastModified) {
+        return getContentPaths(headers, bundleLastModified, null);
+    }
+
+    private static @Nullable Iterator<PathEntry> getContentPaths(final Map<String, String> headers, long bundleLastModified, @Nullable String bundleSymblicName) {
         final List<PathEntry> entries = new ArrayList<>();
         String bundleLastModifiedStamp = headers.get("Bnd-LastModified");
         if ( bundleLastModifiedStamp != null ) {
@@ -176,8 +202,7 @@ public class PathEntry extends ImportOptions {
         if (root != null) {
             final ManifestHeader header = ManifestHeader.parse(root);
             for (final ManifestHeader.Entry entry : header.getEntries()) {
-                
-                entries.add(new PathEntry(entry, bundleLastModified ));
+                entries.add(new PathEntry(entry, bundleLastModified, bundleSymblicName));
             }
         }
 
@@ -192,13 +217,32 @@ public class PathEntry extends ImportOptions {
         return keys.stream()
                    .collect(Collectors.toMap(Function.identity(), dict::get));
     }
- 
+
     public PathEntry(ManifestHeader.Entry entry, long bundleLastModified) {
+        this(entry, bundleLastModified, null);
+    }
+
+    public PathEntry(ManifestHeader.Entry entry, long bundleLastModified, @Nullable String bundleSymbolicName) {
         this.path = entry.getValue();
         this.lastModified = bundleLastModified;
 
-        // check for directives
-
+        final String logPrefix;
+        if (bundleSymbolicName != null  && !bundleSymbolicName.isEmpty()) {
+            logPrefix = "Bundle '" + bundleSymbolicName + "': ";
+        } else {
+            logPrefix = "";
+        }
+        // check for attributes
+        if (entry.getAttributes().length > 0) {
+            log.warn("{}Attributes are not supported in header {} but this header used attributes '{}'. Maybe a directive (with key/value separator ':=') was meant instead?", logPrefix, CONTENT_HEADER, 
+                    Arrays.stream(entry.getAttributes()).map(attr -> attr.getName() + "=" + attr.getValue()).collect(Collectors.joining(", ")));
+        }
+        // check for invalid directives
+        for (NameValuePair directive : entry.getDirectives()) {
+            if (!VALID_DIRECTIVES.contains(directive.getName())) {
+                log.warn("{}Directive '{}' not supported in header {} but it is used with value '{}'", logPrefix, directive.getName(), CONTENT_HEADER, directive.getValue());
+            }
+        }
         // merge directive
         final String mergeProperties = entry.getDirectiveValue(MERGE_PROPERTIES_DIRECTIVE);
         if (mergeProperties != null) {

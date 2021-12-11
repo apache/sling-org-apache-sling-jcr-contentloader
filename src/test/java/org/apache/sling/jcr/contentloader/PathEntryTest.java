@@ -54,6 +54,7 @@ public class PathEntryTest {
         final long lastModifiedValue = 1258555936229L;
 
         mockery.checking(new Expectations() {{
+            allowing(bundle).getSymbolicName(); will(returnValue("example-bundle-name"));
             allowing(bundle).getLastModified(); will(returnValue(lastModifiedValue));
             allowing(bundle).getHeaders(); will(returnValue(dict));
         }});
