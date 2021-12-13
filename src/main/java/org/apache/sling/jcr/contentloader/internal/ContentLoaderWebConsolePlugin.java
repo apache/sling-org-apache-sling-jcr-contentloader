@@ -37,6 +37,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 
 import org.apache.sling.api.request.ResponseUtil;
+import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.contentloader.PathEntry;
 import org.osgi.framework.Bundle;
@@ -84,43 +85,13 @@ public class ContentLoaderWebConsolePlugin extends GenericServlet {
             pw.print("<p class='statline ui-state-highlight'>Apache Sling JCR Content Loader");
             pw.print("</p>");
             pw.println("<table class='nicetable'><thead>");
-            pw.println("<tr><th>Bundle</th><th>Path Entries</th><th>Content Loaded?</th><th>Uninstall Paths (format: JCR workspace:path)</th></tr>");
+            pw.println("<tr><th>Bundle</th><th>Path Entries</th><th>Content Loaded Successfully?</th><th>Uninstall Paths (format: JCR workspace:path)</th></tr>");
             pw.println("</thead><tbody>");
             int bundleNo = 1;
             for (final Bundle bundle : context.getBundles()) {
                 String contentHeader = bundle.getHeaders().get(PathEntry.CONTENT_HEADER);
                 if (contentHeader != null) {
-                    Map<String, Object> contentInfoMap = bundleHelper.getBundleContentInfo(session, bundle, false);
-                    String[] uninstallPaths = (String[])contentInfoMap.get(BundleContentLoaderListener.PROPERTY_UNINSTALL_PATHS);
-                    final String uninstallPathsString;
-                    if (uninstallPaths == null) {
-                        uninstallPathsString = "-";
-                    } else {
-                        uninstallPathsString = Arrays.stream(uninstallPaths).map(ResponseUtil::escapeXml).collect(Collectors.joining("<br/>"));
-                    }
-                    Calendar loadedDate = (Calendar)contentInfoMap.get(BundleContentLoaderListener.PROPERTY_CONTENT_LOADED_AT);
-                    final String loadedDateString;
-                    if (loadedDate == null) {
-                        loadedDateString = "?";
-                    } else {
-                        loadedDateString = DateTimeFormatter.ISO_ZONED_DATE_TIME
-                                .withZone(loadedDate.getTimeZone().toZoneId())
-                                .withLocale(req.getLocale())
-                                .format(loadedDate.toInstant());
-                    }
-                    // https://felix.apache.org/documentation/subprojects/apache-felix-web-console/extending-the-apache-felix-web-console/providing-web-console-plugins.html
-                    String bundleLink = req.getAttribute("felix.webconsole.appRoot") + "/bundles/" + bundle.getBundleId();
-                    String pathEntriesString = StreamSupport.stream(Spliterators.spliteratorUnknownSize(PathEntry.getContentPaths(bundle), Spliterator.ORDERED), false)
-                            .map(ContentLoaderWebConsolePlugin::printPathEntryTable).collect(Collectors.joining("\n"));
-                    String trClass = (bundleNo++ % 2 == 0 ? "even" : "odd") + " ui-state-default";
-                    pw.printf("<tr class='%s'><td><a href=\"%s\">%s (%d)</a></td><td>%s</td><td>%s<br/>(%s)</td><td>%s</td></tr>",
-                            trClass,
-                            bundleLink,
-                            ResponseUtil.escapeXml(bundle.getSymbolicName()), bundle.getBundleId(),
-                            pathEntriesString,
-                            contentInfoMap.get(BundleContentLoaderListener.PROPERTY_CONTENT_LOADED),
-                            ResponseUtil.escapeXml(loadedDateString),
-                            uninstallPathsString);
+                    printBundleInfoTableRow(pw, req, session, bundle, (bundleNo++ % 2 == 0));
                 }
             }
             pw.println("</tbody></table>");
@@ -132,6 +103,44 @@ public class ContentLoaderWebConsolePlugin extends GenericServlet {
                 session.logout();
             }
         }
+    }
+
+    void printBundleInfoTableRow(PrintWriter pw, final ServletRequest req, Session session, Bundle bundle, boolean isEven) throws RepositoryException {
+        Map<String, Object> contentInfoMap = bundleHelper.getBundleContentInfo(session, bundle, false);
+        // release lock as early as possible
+        bundleHelper.unlockBundleContentInfo(session, bundle, false, null);
+        
+        String[] uninstallPaths = (String[])contentInfoMap.get(BundleContentLoaderListener.PROPERTY_UNINSTALL_PATHS);
+        final String uninstallPathsString;
+        if (uninstallPaths == null) {
+            uninstallPathsString = "-";
+        } else {
+            uninstallPathsString = Arrays.stream(uninstallPaths).map(ResponseUtil::escapeXml).collect(Collectors.joining("<br/>"));
+        }
+        Object loadedDate = contentInfoMap.get(BundleContentLoaderListener.PROPERTY_CONTENT_LOADED_AT);
+        final String loadedDetails;
+        if (!(loadedDate instanceof Calendar)) {
+            loadedDetails = "?";
+        } else {
+            Calendar calendar = Calendar.class.cast(loadedDate);
+            String formatterDate = DateTimeFormatter.ISO_ZONED_DATE_TIME.withZone(calendar.getTimeZone().toZoneId()).withLocale(req.getLocale())
+                    .format(calendar.toInstant());
+            String loadedBy = String.valueOf(contentInfoMap.get(BundleContentLoaderListener.PROPERTY_CONTENT_LOADED_BY));
+            loadedDetails = String.format("%s by Sling ID %s", formatterDate, ResponseUtil.escapeXml(loadedBy));
+        }
+        // https://felix.apache.org/documentation/subprojects/apache-felix-web-console/extending-the-apache-felix-web-console/providing-web-console-plugins.html
+        String bundleLink = req.getAttribute("felix.webconsole.appRoot") + "/bundles/" + bundle.getBundleId();
+        String pathEntriesString = StreamSupport.stream(Spliterators.spliteratorUnknownSize(PathEntry.getContentPaths(bundle), Spliterator.ORDERED), false)
+                .map(ContentLoaderWebConsolePlugin::printPathEntryTable).collect(Collectors.joining("\n"));
+        String trClass = (isEven ? "even" : "odd") + " ui-state-default";
+        pw.printf("<tr class='%s'><td><a href=\"%s\">%s (%d)</a></td><td>%s</td><td>%s<br/>(%s)</td><td>%s</td></tr>",
+                trClass,
+                bundleLink,
+                ResponseUtil.escapeXml(bundle.getSymbolicName()), bundle.getBundleId(),
+                pathEntriesString,
+                PropertiesUtil.toBoolean(contentInfoMap.get(BundleContentLoaderListener.PROPERTY_CONTENT_LOADED), false),
+                ResponseUtil.escapeXml(loadedDetails),
+                uninstallPathsString);
     }
 
     static String printPathEntryTable(PathEntry entry) {

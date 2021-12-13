@@ -98,6 +98,9 @@ public class BundleContentLoadedCheck implements HealthCheck {
     @Reference
     private SlingRepository repository;
 
+    @Reference
+    private BundleHelper bundleHelper;
+
     @Activate
     public void activate(BundleContext bundleContext, Config config) {
         this.bundleContext = bundleContext;
@@ -123,9 +126,7 @@ public class BundleContentLoadedCheck implements HealthCheck {
         Session metadataSession = null;
         try {
             metadataSession = repository.loginService(null, null);
-            
-            BundleHelper bundleHelper = new BundleContentLoaderListener();
-            
+           
             for (Bundle bundle : bundles) {
                 String bundleSymbolicName = bundle.getSymbolicName();
                 if (!includesRegex.matcher(bundleSymbolicName).matches()) {
