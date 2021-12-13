@@ -108,6 +108,9 @@ public class PathEntry extends ImportOptions {
      */
     public static final String IGNORE_CONTENT_READERS_DIRECTIVE = "ignoreImportProviders";
 
+    /** Used in https://github.com/apache/sling-maven-plugin/blob/d67d5c1900782c68c1bfcbdc499c02cf31224916/sling-maven-plugin/src/main/java/org/apache/sling/maven/bundlesupport/fsresource/SlingInitialContentMounter.java#L97 */
+    private static final String MAVEN_MOUNT_DIRECTIVE = "maven:mount";
+
     /** All directive names which are valid for header Sling-Initial-Content */
     public Set<String> VALID_DIRECTIVES = new HashSet<>(Arrays.asList(
         OVERWRITE_DIRECTIVE,
@@ -119,7 +122,8 @@ public class PathEntry extends ImportOptions {
         WORKSPACE_DIRECTIVE,
         CHECKIN_DIRECTIVE,
         AUTOCHECKOUT_DIRECTIVE,
-        IGNORE_CONTENT_READERS_DIRECTIVE
+        IGNORE_CONTENT_READERS_DIRECTIVE,
+        MAVEN_MOUNT_DIRECTIVE
     ));
 
     private final boolean propertyMerge;
