@@ -126,7 +126,7 @@ public class ContentLoaderWebConsolePlugin extends GenericServlet {
             String formatterDate = DateTimeFormatter.ISO_ZONED_DATE_TIME.withZone(calendar.getTimeZone().toZoneId()).withLocale(req.getLocale())
                     .format(calendar.toInstant());
             String loadedBy = String.valueOf(contentInfoMap.get(BundleContentLoaderListener.PROPERTY_CONTENT_LOADED_BY));
-            loadedDetails = String.format("%s by Sling ID %s", formatterDate, ResponseUtil.escapeXml(loadedBy));
+            loadedDetails = String.format("%s<br/>by Sling ID %s", formatterDate, ResponseUtil.escapeXml(loadedBy));
         }
         // https://felix.apache.org/documentation/subprojects/apache-felix-web-console/extending-the-apache-felix-web-console/providing-web-console-plugins.html
         String bundleLink = req.getAttribute("felix.webconsole.appRoot") + "/bundles/" + bundle.getBundleId();
