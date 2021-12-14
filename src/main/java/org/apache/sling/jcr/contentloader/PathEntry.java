@@ -340,6 +340,7 @@ public class PathEntry extends ImportOptions {
     public Set<String> getIgnoredContentReaders() {
         return new HashSet<>(ignoreContentReaders);
     }
+
     public String getTarget() {
         return target;
     }
