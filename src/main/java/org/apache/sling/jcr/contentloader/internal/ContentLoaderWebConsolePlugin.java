@@ -133,13 +133,13 @@ public class ContentLoaderWebConsolePlugin extends GenericServlet {
         String pathEntriesString = StreamSupport.stream(Spliterators.spliteratorUnknownSize(PathEntry.getContentPaths(bundle), Spliterator.ORDERED), false)
                 .map(ContentLoaderWebConsolePlugin::printPathEntryTable).collect(Collectors.joining("\n"));
         String trClass = (isEven ? "even" : "odd") + " ui-state-default";
-        pw.printf("<tr class='%s'><td><a href=\"%s\">%s (%d)</a></td><td>%s</td><td>%s<br/>(%s)</td><td>%s</td></tr>",
+        pw.printf("<tr class='%s'><td><a href=\"%s\">%s (%d)</a></td><td>%s</td><td>%s<br/><br/>(%s)</td><td>%s</td></tr>",
                 trClass,
                 bundleLink,
                 ResponseUtil.escapeXml(bundle.getSymbolicName()), bundle.getBundleId(),
                 pathEntriesString,
                 PropertiesUtil.toBoolean(contentInfoMap.get(BundleContentLoaderListener.PROPERTY_CONTENT_LOADED), false),
-                ResponseUtil.escapeXml(loadedDetails),
+                loadedDetails,
                 uninstallPathsString);
     }
 
