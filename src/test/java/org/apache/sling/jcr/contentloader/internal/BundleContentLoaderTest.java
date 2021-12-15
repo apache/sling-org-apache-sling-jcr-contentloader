@@ -22,10 +22,9 @@ import static java.util.Collections.singletonMap;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.lang.annotation.Annotation;
@@ -52,11 +51,9 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.jcr.contentloader.internal.readers.JsonReader;
 import org.apache.sling.jcr.contentloader.internal.readers.XmlReader;
 import org.apache.sling.jcr.contentloader.internal.readers.ZipReader;
-import org.apache.sling.jcr.resource.internal.helper.JcrResourceUtil;
 import org.apache.sling.testing.mock.osgi.MockBundle;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
-import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -132,7 +129,7 @@ public class BundleContentLoaderTest {
         AccessControlManager acMgr = session.getAccessControlManager();
         AccessControlList acl = (AccessControlList)acMgr.getPolicies(path)[0];
         AccessControlEntry[] aces = acl.getAccessControlEntries();
-        MatcherAssert.assertThat(aces, Matchers.arrayContaining(expectedAces));
+        assertThat(aces, Matchers.arrayContaining(expectedAces));
     }
  
     @Test
@@ -182,6 +179,22 @@ public class BundleContentLoaderTest {
         Resource imported = context.resourceResolver().getResource("/libs/app");
 
         assertThat("Resource was not imported", imported, notNullValue());
+        assertThat("sling:resourceType was not properly set", imported.getResourceType(), equalTo("sling:Folder"));
+    }
+
+    @Test
+    public void loadContentFromFilePathEntry() throws Exception {
+
+        BundleContentLoader contentLoader = new BundleContentLoader(bundleHelper, whiteboard, null);
+
+        Bundle mockBundle = newBundleWithInitialContent(context, "initial-content/i18n/en.json;path:=/apps/i18n/en");
+
+        contentLoader.registerBundle(context.resourceResolver().adaptTo(Session.class), mockBundle, false);
+
+        Resource imported = context.resourceResolver().getResource("/apps/i18n/en");
+
+        assertThat("Resource was not imported", imported, notNullValue());
+        assertEquals("i18n-message", imported.getValueMap().get("i18n-key"));
         assertThat("sling:resourceType was not properly set", imported.getResourceType(), equalTo("sling:Folder"));
     }
 

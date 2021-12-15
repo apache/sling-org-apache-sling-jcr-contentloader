@@ -367,14 +367,8 @@ public class BundleContentLoader extends BaseImportLoader {
                 log.info("install: No initial content entries at {} in bundle {}", path, bundle.getSymbolicName());
                 return;
             }
-            // we have a single file content, let's check if this has an content reader
-            // extension
-            for (String ext : contentCreator.getContentReaders().keySet()) {
-                if (path.endsWith(ext)) {
-
-                }
-            }
-            handleFile(path, bundle, processedEntries, configuration, parent, createdNodes, contentCreator);
+            // we have a single file content -> this should replace the target node fully, i.e. parent is one level above
+            handleFile(path, bundle, processedEntries, configuration, parent.getParent(), createdNodes, contentCreator);
             return;
         }
 
