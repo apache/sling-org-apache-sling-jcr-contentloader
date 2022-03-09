@@ -422,16 +422,16 @@ public class PathEntry extends ImportOptions {
 
         // a filter to check if the name ends with the suffix and is not
         //  listed in the ignored import provider set
-        Predicate<String> endsWithExtAndNotAnIgnoredImportProvider = ext -> {
-                   // longer than file ext
-            return name.length() > ext.length() && 
-                   // ends with file ext
-                   name.endsWith(ext) &&  
-                   // dot before the file ext
-                   '.' == name.charAt(name.length() - ext.length() - 1) &&
-                   // and not one of the ignored providers
-                   !isIgnoredImportProvider(ext);
-        };
+        Predicate<String> endsWithExtAndNotAnIgnoredImportProvider = ext ->
+                // longer than file ext
+                name.length() > ext.length() && 
+                // ends with file ext
+                name.endsWith(ext) &&  
+                // dot before the file ext
+                '.' == name.charAt(name.length() - ext.length() - 1) &&
+                // and not one of the ignored providers
+                !isIgnoredImportProvider(ext);
+
         if (this.requireContentReaders.isEmpty()) {
             // no directive was supplied, so fallback to the default collection
             required = defaultImportProviderRequired.stream()
