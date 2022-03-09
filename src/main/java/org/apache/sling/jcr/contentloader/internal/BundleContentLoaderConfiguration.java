@@ -18,6 +18,10 @@
  */
 package org.apache.sling.jcr.contentloader.internal;
 
+import org.apache.sling.jcr.contentloader.internal.readers.JsonReader;
+import org.apache.sling.jcr.contentloader.internal.readers.OrderedJsonReader;
+import org.apache.sling.jcr.contentloader.internal.readers.XmlReader;
+import org.apache.sling.jcr.contentloader.internal.readers.ZipReader;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
@@ -29,4 +33,14 @@ public @interface BundleContentLoaderConfiguration {
 
     @AttributeDefinition(name = "%excludedTargets.name", description = "%excludedTargets.description")
     String[] excludedTargets() default {};
+
+    @AttributeDefinition(name = "%defaultRequireImportProviders.name", description = "%defaultRequireImportProviders.description")
+    String[] defaultRequireImportProviders() default {
+        OrderedJsonReader.EXT_ORDERED_JSON,
+        JsonReader.EXT_JSON,
+        XmlReader.EXT_XML,
+        ZipReader.EXT_ZIP,
+        ZipReader.EXT_JAR
+    };
+
 }

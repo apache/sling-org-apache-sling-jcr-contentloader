@@ -27,6 +27,7 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -71,6 +72,8 @@ public class BundleContentLoader extends BaseImportLoader {
 
     private final Predicate<String> pathFilter;
 
+    private final Collection<String> defaultRequireImportProviders;
+
     public BundleContentLoader(BundleHelper bundleHelper, ContentReaderWhiteboard contentReaderWhiteboard,
             BundleContentLoaderConfiguration configuration) {
         super(contentReaderWhiteboard);
@@ -94,6 +97,13 @@ public class BundleContentLoader extends BaseImportLoader {
             }
         };
         log.debug("Using includes: {} and excludes: {}", includes, excludes);
+
+        this.defaultRequireImportProviders = Arrays
+                .stream(Optional.ofNullable(configuration).map(BundleContentLoaderConfiguration::defaultRequireImportProviders)
+                        .orElse(new String[0]))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        log.debug("Using defaultRequireImportProviders: {}", defaultRequireImportProviders);
     }
 
     public void dispose() {
@@ -105,9 +115,28 @@ public class BundleContentLoader extends BaseImportLoader {
     }
 
     /**
+     * Retry loading bundles that have previously been delayed 
+     * @param metadataSession the JCR Session for reading/writing metadata
+     */
+    public void retryDelayedBundles(final Session metadataSession) {
+        // handle delayed bundles, might help now
+        int currentSize = -1;
+        for (int i = delayedBundles.size(); i > 0 && currentSize != delayedBundles.size()
+                && !delayedBundles.isEmpty(); i--) {
+            for (Iterator<Bundle> di = delayedBundles.iterator(); di.hasNext();) {
+                Bundle delayed = di.next();
+                if (registerBundleInternal(metadataSession, delayed, true, false)) {
+                    di.remove();
+                }
+            }
+            currentSize = delayedBundles.size();
+        }
+    }
+
+    /**
      * Register a bundle and install its content.
      *
-     * @param metadataSession the JCR Session for reading/writing metadat
+     * @param metadataSession the JCR Session for reading/writing metadata
      * @param bundle the bundle to install
      */
     public void registerBundle(final Session metadataSession, final Bundle bundle, final boolean isUpdate) {
@@ -120,18 +149,7 @@ public class BundleContentLoader extends BaseImportLoader {
         log.debug("Registering bundle {} for content loading.", bundle.getSymbolicName());
 
         if (registerBundleInternal(metadataSession, bundle, false, isUpdate)) {
-            // handle delayed bundles, might help now
-            int currentSize = -1;
-            for (int i = delayedBundles.size(); i > 0 && currentSize != delayedBundles.size()
-                    && !delayedBundles.isEmpty(); i--) {
-                for (Iterator<Bundle> di = delayedBundles.iterator(); di.hasNext();) {
-                    Bundle delayed = di.next();
-                    if (registerBundleInternal(metadataSession, delayed, true, false)) {
-                        di.remove();
-                    }
-                }
-                currentSize = delayedBundles.size();
-            }
+            retryDelayedBundles(metadataSession);
         } else if (!isUpdate) {
             // add to delayed bundles - if this is not an update!
             delayedBundles.add(bundle);
@@ -466,7 +484,14 @@ public class BundleContentLoader extends BaseImportLoader {
                     log.warn("No node created for file {} {}", file, name);
                 }
             } else {
-                log.debug("Can't find content reader for entry {} at {}", entry, name);
+                // if we require a ContentReader for this entry but didn't find one
+                //   then throw an exception to stop processing this bundle and put 
+                //   it into the delayedBundles list to retry later
+                if (configuration.isImportProviderRequired(name, defaultRequireImportProviders)) {
+                    throw new RepositoryException(String.format("Can't find required content reader for entry %s", entry));
+                } else {
+                    log.debug("Can't find content reader for entry {} at {}", entry, name);
+                }
             }
 
             // otherwise just place as file

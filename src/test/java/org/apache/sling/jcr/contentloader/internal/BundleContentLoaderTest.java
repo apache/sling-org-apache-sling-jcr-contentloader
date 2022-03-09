@@ -218,6 +218,13 @@ public class BundleContentLoaderTest {
                         return new String[] { "^/libs.*$" };
                     }
 
+                    @Override
+                    public String[] defaultRequireImportProviders() {
+                        return new String[] {
+                                XmlReader.EXT_XML
+                        };
+                    }
+
                 });
 
         Bundle mockBundle = newBundleWithInitialContent(context, 
@@ -249,6 +256,13 @@ public class BundleContentLoaderTest {
                         return null;
                     }
 
+                    @Override
+                    public String[] defaultRequireImportProviders() {
+                        return new String[] {
+                                XmlReader.EXT_XML
+                        };
+                    }
+
                 });
 
         Bundle mockBundle = newBundleWithInitialContent(context,
@@ -278,6 +292,13 @@ public class BundleContentLoaderTest {
                     @Override
                     public String[] excludedTargets() {
                         return new String[] { "^/app.*$" };
+                    }
+
+                    @Override
+                    public String[] defaultRequireImportProviders() {
+                        return new String[] {
+                                XmlReader.EXT_XML
+                        };
                     }
 
                 });

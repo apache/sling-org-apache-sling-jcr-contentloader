@@ -43,10 +43,11 @@ import org.osgi.service.component.annotations.Component;
 @Component(service = ContentReader.class,
 property = {
     Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
-    ContentReader.PROPERTY_EXTENSIONS + "=ordered-json",
+    ContentReader.PROPERTY_EXTENSIONS + "=" + OrderedJsonReader.EXT_ORDERED_JSON,
     ContentReader.PROPERTY_TYPES + "=application/json"
 })
 public class OrderedJsonReader extends JsonReader {
+    public static final String EXT_ORDERED_JSON = "ordered-json";
 
     private static final String PN_ORDEREDCHILDREN = "SLING:ordered";
     private static final String PN_ORDEREDCHILDNAME = "SLING:name";

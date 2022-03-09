@@ -40,12 +40,14 @@ import org.osgi.service.component.annotations.Component;
 @Component(service = ContentReader.class,
     property = {
         Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
-        ContentReader.PROPERTY_EXTENSIONS + "=zip",
-        ContentReader.PROPERTY_EXTENSIONS + "=jar",
+        ContentReader.PROPERTY_EXTENSIONS + "=" + ZipReader.EXT_ZIP,
+        ContentReader.PROPERTY_EXTENSIONS + "=" + ZipReader.EXT_JAR,
         ContentReader.PROPERTY_TYPES + "=application/zip",
         ContentReader.PROPERTY_TYPES + "=application/java-archive"
 })
 public class ZipReader implements ContentReader {
+    public static final String EXT_ZIP = "zip";
+    public static final String EXT_JAR = "jar";
 
     private static final String NT_FOLDER = "nt:folder";
 

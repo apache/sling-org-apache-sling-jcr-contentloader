@@ -99,9 +99,10 @@ import org.xmlpull.v1.XmlPullParserException;
  * <code>&lt;nt:file&gt;</code> element.
  */
 @Component(service = ContentReader.class, property = { Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
-        ContentReader.PROPERTY_EXTENSIONS + "=xml", ContentReader.PROPERTY_TYPES + "=application/xml",
+        ContentReader.PROPERTY_EXTENSIONS + "=" + XmlReader.EXT_XML, ContentReader.PROPERTY_TYPES + "=application/xml",
         ContentReader.PROPERTY_TYPES + "=text/xml" })
 public class XmlReader implements ContentReader {
+    public static final String EXT_XML = "xml";
 
     /*
      * <node> <primaryNodeType>type</primaryNodeType> <mixinNodeTypes>

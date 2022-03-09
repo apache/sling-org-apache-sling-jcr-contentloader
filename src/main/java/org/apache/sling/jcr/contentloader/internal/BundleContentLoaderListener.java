@@ -35,6 +35,7 @@ import javax.jcr.lock.LockManager;
 
 import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.jcr.api.SlingRepository;
+import org.apache.sling.jcr.contentloader.ContentReader;
 import org.apache.sling.serviceusermapping.ServiceUserMapped;
 import org.apache.sling.settings.SlingSettingsService;
 import org.osgi.framework.Bundle;
@@ -63,7 +64,7 @@ import org.slf4j.LoggerFactory;
         Constants.SERVICE_DESCRIPTION
                 + "=Apache Sling Content Loader Implementation" }, immediate = true, configurationPolicy = ConfigurationPolicy.OPTIONAL)
 @Designate(ocd = BundleContentLoaderConfiguration.class, factory = false)
-public class BundleContentLoaderListener implements SynchronousBundleListener, BundleHelper {
+public class BundleContentLoaderListener implements SynchronousBundleListener, BundleHelper, ContentReaderWhiteboardListener {
 
     public static final String PROPERTY_CONTENT_LOADED = "content-loaded";
     public static final String PROPERTY_CONTENT_LOADED_AT = "content-load-time";
@@ -121,6 +122,26 @@ public class BundleContentLoaderListener implements SynchronousBundleListener, B
     /** Sling settings service. */
     @Reference
     protected SlingSettingsService settingsService;
+
+    // ---------- ContentReaderWhiteboardListener -----------------------------------------------
+
+    /**
+     * When a new ContentReader component arrives, try to re-process any
+     * delayed bundles in case the new ContentReader makes it possible to
+     * process them now
+     */
+    @Override
+    public synchronized void handleContentReaderAdded(ContentReader operation) {
+        Session session = null;
+        try {
+            session = this.getSession();
+            bundleContentLoader.retryDelayedBundles(session);
+        } catch (Exception t) {
+            log.error("handleContentReaderAdded: Problem loading initial content of delayed bundles", t);
+        } finally {
+            this.ungetSession(session);
+        }
+    }
 
     // ---------- BundleListener -----------------------------------------------
 
@@ -229,6 +250,8 @@ public class BundleContentLoaderListener implements SynchronousBundleListener, B
         this.bundleContentLoader = new BundleContentLoader(this, contentReaderWhiteboard, configuration);
 
         bundleContext.addBundleListener(this);
+        // start listening for new ContentReader components
+        contentReaderWhiteboard.setListener(this);
 
         Session session = null;
         try {
@@ -278,6 +301,8 @@ public class BundleContentLoaderListener implements SynchronousBundleListener, B
     @Deactivate
     protected synchronized void deactivate(BundleContext bundleContext) {
         bundleContext.removeBundleListener(this);
+        // stop listening for new ContentReader components
+        contentReaderWhiteboard.removeListener();
 
         if (this.bundleContentLoader != null) {
             this.bundleContentLoader.dispose();

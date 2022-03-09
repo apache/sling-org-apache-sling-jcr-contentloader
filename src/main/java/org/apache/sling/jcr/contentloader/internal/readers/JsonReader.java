@@ -108,8 +108,9 @@ import org.osgi.service.component.annotations.Component;
  * </pre>
  */
 @Component(service = ContentReader.class, property = { Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
-        ContentReader.PROPERTY_EXTENSIONS + "=json", ContentReader.PROPERTY_TYPES + "=application/json" })
+        ContentReader.PROPERTY_EXTENSIONS + "=" + JsonReader.EXT_JSON, ContentReader.PROPERTY_TYPES + "=application/json" })
 public class JsonReader implements ContentReader {
+    public static final String EXT_JSON = "json";
 
     private static final Pattern jsonDate = Pattern.compile(
             "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}[-+]{1}[0-9]{2}[:]{0,1}[0-9]{2}$");
