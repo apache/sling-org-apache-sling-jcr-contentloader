@@ -206,6 +206,12 @@ public class BundleContentLoader extends BaseImportLoader {
                 bundleHelper.unlockBundleContentInfo(metadataSession, bundle, success, createdNodes);
             }
 
+        } catch (ContentReaderUnavailableException crue) {
+            // if we are retrying we already logged this message once, so we
+            // won't log it again
+            if (!isRetry) {
+                log.warn("Cannot load initial content for bundle {} : {}", bundle.getSymbolicName(), crue.getMessage());
+            }
         } catch (RepositoryException re) {
             // if we are retrying we already logged this message once, so we
             // won't log it again
@@ -262,7 +268,7 @@ public class BundleContentLoader extends BaseImportLoader {
      * @return If the content should be removed on uninstall, a list of top nodes
      */
     private List<String> installContent(final Session defaultSession, final Bundle bundle,
-            final Iterator<PathEntry> pathIter, final boolean contentAlreadyLoaded) throws RepositoryException {
+            final Iterator<PathEntry> pathIter, final boolean contentAlreadyLoaded) throws RepositoryException, ContentReaderUnavailableException {
 
         final List<String> createdNodes = new ArrayList<>();
         final Map<String, Session> createdSessions = new HashMap<>();
@@ -370,7 +376,7 @@ public class BundleContentLoader extends BaseImportLoader {
      */
     private void installFromPath(final Bundle bundle, final String path, final PathEntry configuration,
             final Node parent, final List<String> createdNodes, final DefaultContentCreator contentCreator)
-            throws RepositoryException {
+            throws RepositoryException, ContentReaderUnavailableException {
 
         // init content creator
         contentCreator.init(configuration, getContentReaders(), createdNodes, null);
@@ -452,7 +458,7 @@ public class BundleContentLoader extends BaseImportLoader {
      */
     private void handleFile(final String entry, final Bundle bundle, final Map<String, Node> processedEntries,
             final PathEntry configuration, final Node parent, final List<String> createdNodes,
-            final DefaultContentCreator contentCreator) throws RepositoryException {
+            final DefaultContentCreator contentCreator) throws RepositoryException, ContentReaderUnavailableException {
 
         final URL file = bundle.getEntry(entry);
         final String name = getName(entry);
@@ -488,7 +494,7 @@ public class BundleContentLoader extends BaseImportLoader {
                 //   then throw an exception to stop processing this bundle and put 
                 //   it into the delayedBundles list to retry later
                 if (configuration.isImportProviderRequired(name, defaultRequireImportProviders)) {
-                    throw new RepositoryException(String.format("Can't find required content reader for entry %s", entry));
+                    throw new ContentReaderUnavailableException(String.format("Unable to locate a required content reader for entry %s", entry));
                 } else {
                     log.debug("Can't find content reader for entry {} at {}", entry, name);
                 }
