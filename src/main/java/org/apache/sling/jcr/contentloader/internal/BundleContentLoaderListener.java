@@ -350,6 +350,7 @@ public class BundleContentLoaderListener implements SynchronousBundleListener, B
         }
         final Node bcNode = parentNode.getNode(nodeName);
         if (bcNode.isLocked()) {
+            this.log.debug("Node {}/{} is currently locked, unable to get BundleContentInfo.", BUNDLE_CONTENT_NODE, nodeName);
             return null;
         }
         try {
@@ -359,6 +360,7 @@ public class BundleContentLoaderListener implements SynchronousBundleListener, B
                     Long.MAX_VALUE, // timeoutHint
                     null); // ownerInfo
         } catch (LockException le) {
+            this.log.debug("Unable to lock node {}/{}, unable to get BundleContentInfo.", BUNDLE_CONTENT_NODE, nodeName, le);
             return null;
         }
         final Map<String, Object> info = new HashMap<>();
