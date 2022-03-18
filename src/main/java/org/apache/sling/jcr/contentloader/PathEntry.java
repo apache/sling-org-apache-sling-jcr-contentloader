@@ -109,6 +109,14 @@ public class PathEntry extends ImportOptions {
     public static final String IGNORE_CONTENT_READERS_DIRECTIVE = "ignoreImportProviders";
 
     /**
+     * The require content readers directive specifying which of the available 
+     * {@link org.apache.sling.jcr.contentloader.ContentReader}s should exist before
+     * content loading. This is a string value that defaults to the emptystring.
+     * @since 2.5.2
+     */
+    public static final String REQUIRE_CONTENT_READERS_DIRECTIVE = "requireImportProviders";
+
+    /**
      * The flag "maven:mount" is not actually used by the JCR Content Loader. It can be used
      * to signal to the "fsmount" goal of the sling-maven-plugin to ignore a certain Sling-Initial-Content entry
      * of a Maven project when "sling:mount" is executed on the command line.
@@ -128,6 +136,7 @@ public class PathEntry extends ImportOptions {
         CHECKIN_DIRECTIVE,
         AUTOCHECKOUT_DIRECTIVE,
         IGNORE_CONTENT_READERS_DIRECTIVE,
+        REQUIRE_CONTENT_READERS_DIRECTIVE,
         MAVEN_MOUNT_DIRECTIVE
     ));
 
@@ -155,6 +164,9 @@ public class PathEntry extends ImportOptions {
     
     /** Which content readers should be ignored? @since 2.0.4 */
     private final List<String> ignoreContentReaders;
+
+    /** Which content readers should be required? @since 2.5.2 */
+    private final List<String> requireContentReaders;
 
     /**
      * Target path where initial content will be loaded. If it´s null then
@@ -327,6 +339,16 @@ public class PathEntry extends ImportOptions {
             }
         }
 
+        // expand directive
+        this.requireContentReaders = new ArrayList<>();
+        final String requireContentReadersValue = entry.getDirectiveValue(REQUIRE_CONTENT_READERS_DIRECTIVE);
+        if ( requireContentReadersValue != null && requireContentReadersValue.length() > 0 ) {
+            final StringTokenizer st = new StringTokenizer(requireContentReadersValue, ",");
+            while ( st.hasMoreTokens() ) {
+                this.requireContentReaders.add(st.nextToken());
+            }
+        }
+
         // workspace directive
         final String workspaceValue = entry.getDirectiveValue(WORKSPACE_DIRECTIVE);
         if (pathValue != null) {
@@ -390,6 +412,28 @@ public class PathEntry extends ImportOptions {
 
     public Set<String> getIgnoredContentReaders() {
         return new HashSet<>(ignoreContentReaders);
+    }
+
+    @Override
+    public boolean isImportProviderRequired(@NotNull String name) {
+        boolean required = false;
+
+        if (!this.requireContentReaders.isEmpty()) {
+            // a directive was supplied, so use a filter to check if the 
+            //  name ends with the suffix and is not listed in the ignored 
+            //  import provider set
+            required = this.requireContentReaders.stream()
+                            .anyMatch(ext ->
+                                        // longer than file ext
+                                        name.length() > ext.length() && 
+                                        // ends with file ext
+                                        name.endsWith(ext) &&  
+                                        // dot before the file ext
+                                        '.' == name.charAt(name.length() - ext.length() - 1) &&
+                                        // and not one of the ignored providers
+                                        !isIgnoredImportProvider(ext));
+        }
+        return required;
     }
 
     public String getTarget() {

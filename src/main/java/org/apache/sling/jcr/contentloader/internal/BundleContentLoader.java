@@ -105,9 +105,28 @@ public class BundleContentLoader extends BaseImportLoader {
     }
 
     /**
+     * Retry loading bundles that have previously been delayed 
+     * @param metadataSession the JCR Session for reading/writing metadata
+     */
+    public void retryDelayedBundles(final Session metadataSession) {
+        // handle delayed bundles, might help now
+        int currentSize = -1;
+        for (int i = delayedBundles.size(); i > 0 && currentSize != delayedBundles.size()
+                && !delayedBundles.isEmpty(); i--) {
+            for (Iterator<Bundle> di = delayedBundles.iterator(); di.hasNext();) {
+                Bundle delayed = di.next();
+                if (registerBundleInternal(metadataSession, delayed, true, false)) {
+                    di.remove();
+                }
+            }
+            currentSize = delayedBundles.size();
+        }
+    }
+
+    /**
      * Register a bundle and install its content.
      *
-     * @param metadataSession the JCR Session for reading/writing metadat
+     * @param metadataSession the JCR Session for reading/writing metadata
      * @param bundle the bundle to install
      */
     public void registerBundle(final Session metadataSession, final Bundle bundle, final boolean isUpdate) {
@@ -120,18 +139,7 @@ public class BundleContentLoader extends BaseImportLoader {
         log.debug("Registering bundle {} for content loading.", bundle.getSymbolicName());
 
         if (registerBundleInternal(metadataSession, bundle, false, isUpdate)) {
-            // handle delayed bundles, might help now
-            int currentSize = -1;
-            for (int i = delayedBundles.size(); i > 0 && currentSize != delayedBundles.size()
-                    && !delayedBundles.isEmpty(); i--) {
-                for (Iterator<Bundle> di = delayedBundles.iterator(); di.hasNext();) {
-                    Bundle delayed = di.next();
-                    if (registerBundleInternal(metadataSession, delayed, true, false)) {
-                        di.remove();
-                    }
-                }
-                currentSize = delayedBundles.size();
-            }
+            retryDelayedBundles(metadataSession);
         } else if (!isUpdate) {
             // add to delayed bundles - if this is not an update!
             delayedBundles.add(bundle);
@@ -188,6 +196,12 @@ public class BundleContentLoader extends BaseImportLoader {
                 bundleHelper.unlockBundleContentInfo(metadataSession, bundle, success, createdNodes);
             }
 
+        } catch (ContentReaderUnavailableException crue) {
+            // if we are retrying we already logged this message once, so we
+            // won't log it again
+            if (!isRetry) {
+                log.warn("Cannot load initial content for bundle {} : {}", bundle.getSymbolicName(), crue.getMessage());
+            }
         } catch (RepositoryException re) {
             // if we are retrying we already logged this message once, so we
             // won't log it again
@@ -244,7 +258,7 @@ public class BundleContentLoader extends BaseImportLoader {
      * @return If the content should be removed on uninstall, a list of top nodes
      */
     private List<String> installContent(final Session defaultSession, final Bundle bundle,
-            final Iterator<PathEntry> pathIter, final boolean contentAlreadyLoaded) throws RepositoryException {
+            final Iterator<PathEntry> pathIter, final boolean contentAlreadyLoaded) throws RepositoryException, ContentReaderUnavailableException {
 
         final List<String> createdNodes = new ArrayList<>();
         final Map<String, Session> createdSessions = new HashMap<>();
@@ -352,7 +366,7 @@ public class BundleContentLoader extends BaseImportLoader {
      */
     private void installFromPath(final Bundle bundle, final String path, final PathEntry configuration,
             final Node parent, final List<String> createdNodes, final DefaultContentCreator contentCreator)
-            throws RepositoryException {
+            throws RepositoryException, ContentReaderUnavailableException {
 
         // init content creator
         contentCreator.init(configuration, getContentReaders(), createdNodes, null);
@@ -434,7 +448,7 @@ public class BundleContentLoader extends BaseImportLoader {
      */
     private void handleFile(final String entry, final Bundle bundle, final Map<String, Node> processedEntries,
             final PathEntry configuration, final Node parent, final List<String> createdNodes,
-            final DefaultContentCreator contentCreator) throws RepositoryException {
+            final DefaultContentCreator contentCreator) throws RepositoryException, ContentReaderUnavailableException {
 
         final URL file = bundle.getEntry(entry);
         final String name = getName(entry);
@@ -466,7 +480,14 @@ public class BundleContentLoader extends BaseImportLoader {
                     log.warn("No node created for file {} {}", file, name);
                 }
             } else {
-                log.debug("Can't find content reader for entry {} at {}", entry, name);
+                // if we require a ContentReader for this entry but didn't find one
+                //   then throw an exception to stop processing this bundle and put 
+                //   it into the delayedBundles list to retry later
+                if (configuration.isImportProviderRequired(name)) {
+                    throw new ContentReaderUnavailableException(String.format("Unable to locate a required content reader for entry %s", entry));
+                } else {
+                    log.debug("Can't find content reader for entry {} at {}", entry, name);
+                }
             }
 
             // otherwise just place as file

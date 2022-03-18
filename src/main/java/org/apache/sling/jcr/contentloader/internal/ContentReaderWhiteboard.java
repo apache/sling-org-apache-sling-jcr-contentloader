@@ -30,9 +30,18 @@ import org.osgi.service.component.annotations.ReferencePolicy;
     })
 public class ContentReaderWhiteboard {
 
+    private ContentReaderWhiteboardListener listener;
+
     private Map<String, ContentReader> readersByExtension = new LinkedHashMap<>();
 
     private Map<String, ContentReader> readersByType = new LinkedHashMap<>();
+
+    public void setListener(ContentReaderWhiteboardListener listener) {
+        this.listener = listener;
+    }
+    public void removeListener() {
+        setListener(null);
+    }
 
     public Map<String, ContentReader> getReadersByExtension() {
         return readersByExtension;
@@ -60,6 +69,12 @@ public class ContentReaderWhiteboard {
                     readersByType.put(type, operation);
                 }
             }
+        }
+
+        // notify the listener that we have a new content reader
+        ContentReaderWhiteboardListener l = this.listener;
+        if (l != null) {
+            l.handleContentReaderAdded(operation);
         }
     }
 

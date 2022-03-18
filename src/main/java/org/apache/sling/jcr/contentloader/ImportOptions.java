@@ -18,6 +18,7 @@
  */
 package org.apache.sling.jcr.contentloader;
 
+import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**
@@ -85,5 +86,14 @@ public abstract class ImportOptions {
 	 * @return true to ignore the reader, false otherwise
 	 */
 	public abstract boolean isIgnoredImportProvider(String extension);
+
+    /**
+     * Check if the given entry name should require a matching registered 
+     * import provider.
+     *
+     * @param name the entry name to check
+     * @return true to require an import provider, false otherwise
+     */
+    public abstract boolean isImportProviderRequired(@NotNull String name);
 
 }

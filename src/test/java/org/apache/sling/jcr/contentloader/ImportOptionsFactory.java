@@ -16,6 +16,8 @@
  */
 package org.apache.sling.jcr.contentloader;
 
+import org.jetbrains.annotations.NotNull;
+
 public final class ImportOptionsFactory {
     
     public static final int NO_OPTIONS = 0;
@@ -33,8 +35,9 @@ public final class ImportOptionsFactory {
     public static final int IGNORE_IMPORT_PROVIDER = 0x1 << 5;
     
     public static final int CHECK_IN = 0x1 << 6;
-    
-    
+
+    public static final int REQUIRE_IMPORT_PROVIDER = 0x1 << 7;
+
     public static ImportOptions createImportOptions(int options){
         return new ImportOptions() {
             @Override
@@ -60,6 +63,11 @@ public final class ImportOptionsFactory {
             @Override
             public boolean isIgnoredImportProvider(String extension) {
                 return (options & IGNORE_IMPORT_PROVIDER) > NO_OPTIONS;
+            }
+
+            @Override
+            public boolean isImportProviderRequired(@NotNull String name) {
+                return (options & REQUIRE_IMPORT_PROVIDER) > NO_OPTIONS;
             }
 
             @Override
