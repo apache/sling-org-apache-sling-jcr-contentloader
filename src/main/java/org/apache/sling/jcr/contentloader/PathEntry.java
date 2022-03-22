@@ -423,17 +423,31 @@ public class PathEntry extends ImportOptions {
             //  name ends with the suffix and is not listed in the ignored 
             //  import provider set
             required = this.requireContentReaders.stream()
-                            .anyMatch(ext ->
-                                        // longer than file ext
-                                        name.length() > ext.length() && 
-                                        // ends with file ext
-                                        name.endsWith(ext) &&  
-                                        // dot before the file ext
-                                        '.' == name.charAt(name.length() - ext.length() - 1) &&
+                            .anyMatch(suffix ->
+                                        // verify the file suffix matches
+                                        hasNameSuffix(name, suffix) &&
                                         // and not one of the ignored providers
-                                        !isIgnoredImportProvider(ext));
+                                        !isIgnoredImportProvider(suffix));
         }
         return required;
+    }
+
+    /**
+     * Check if the name ends with the supplied suffix
+     * 
+     * @param name the name to check
+     * @param suffix the suffix to check
+     * @return true if the name ends with the suffix
+     */
+    private boolean hasNameSuffix(String name, String suffix) {
+               // ensure neither arg is null
+        return name != null && suffix != null &&
+               // is longer than suffix
+               name.length() > suffix.length() && 
+               // ends with suffix
+               name.endsWith(suffix) &&  
+               // dot before the suffix
+               '.' == name.charAt(name.length() - suffix.length() - 1);
     }
 
     public String getTarget() {
