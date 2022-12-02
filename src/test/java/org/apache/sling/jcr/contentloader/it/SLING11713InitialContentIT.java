@@ -161,7 +161,7 @@ public class SLING11713InitialContentIT extends ContentloaderTestSupport {
                 allEntries.addAll(Arrays.asList(accessControlEntries));
             }
         }
-        assertEquals(7, allEntries.size());
+        assertEquals(9, allEntries.size());
         Map<String, List<AccessControlEntry>> aceMap = new HashMap<>();
         for (AccessControlEntry accessControlEntry : allEntries) {
             List<AccessControlEntry> aceList = aceMap.computeIfAbsent(accessControlEntry.getPrincipal().getName(), name -> new ArrayList<>());
@@ -215,6 +215,20 @@ public class SLING11713InitialContentIT extends ContentloaderTestSupport {
         assertAce(aceList.get(2), "everyone",
                 true, // isAllow
                 new String[] {"jcr:write"}, // PrivilegeNames
+                new String[] {"rep:glob"}, // RestrictionNames
+                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
+
+        aceList = aceMap.get("sling11713_user2");
+        assertNotNull(aceList);
+        assertEquals(2, aceList.size());
+        assertAce(aceList.get(0), "sling11713_user2",
+                false, // isAllow
+                new String[] {"jcr:read"}, // PrivilegeNames
+                new String[] {"rep:itemNames"}, // RestrictionNames
+                new String[][] {new String[]{"name1"}}); // RestrictionValues
+        assertAce(aceList.get(1), "sling11713_user2",
+                true, // isAllow
+                new String[] {"jcr:read"}, // PrivilegeNames
                 new String[] {"rep:glob"}, // RestrictionNames
                 new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
     }

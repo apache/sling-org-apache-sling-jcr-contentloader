@@ -11,6 +11,10 @@
             "members":[
                "sling11713_user"
             ]
+        },
+        {
+            "name": "sling11713_user2",
+            "password": "mypassword"
         }
     ],
     "security:acl": [
@@ -55,6 +59,19 @@
                             "name1",
                             "name2"
                         ]
+                    }
+                }
+            }
+        },
+        {
+            "principal": "sling11713_user2",
+            "privileges":{
+                "jcr:read":{
+                    "allow":{
+                        "rep:glob":["glob1allow"]
+                    },
+                    "deny":{
+                        "rep:itemNames": "name1"
                     }
                 }
             }
