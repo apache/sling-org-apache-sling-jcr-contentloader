@@ -101,9 +101,7 @@ public class LocalRestriction {
                 return false;
         } else if (!restriction.equals(other.restriction))
             return false;
-        if (!Arrays.equals(values, other.values))
-            return false;
-        return true;
+        return Arrays.equals(values, other.values);
     }
 
 }

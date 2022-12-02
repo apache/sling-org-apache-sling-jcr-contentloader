@@ -859,23 +859,21 @@ public class DefaultContentCreator implements ContentCreator {
      */
     public void createAce(String principalId, String[] grantedPrivilegeNames, String[] deniedPrivilegeNames,
             String order) throws RepositoryException {
-        createAce(principalId, grantedPrivilegeNames, deniedPrivilegeNames, order, null, null, null);
+        Map<String, LocalPrivilege> privilegeToLocalPrivilegesMap = toLocalPrivileges(grantedPrivilegeNames,
+                deniedPrivilegeNames);
+
+        createAce(principalId, new ArrayList<>(privilegeToLocalPrivilegesMap.values()), order);
     }
 
-    /*
-     * (non-Javadoc)
+    /**
+     * Convert the privilege names to LocalPrivileges
      * 
-     * @see
-     * org.apache.sling.jcr.contentloader.ContentCreator#createAce(java.lang.String,
-     * java.lang.String[], java.lang.String[], java.lang.String, java.util.Map,
-     * java.util.Map, java.util.Set)
-     * @deprecated use {@link #createAce(String, Collection, String)} instead
+     * @param grantedPrivilegeNames the granted privileges
+     * @param deniedPrivilegeNames the denied privileges
+     * @return map of privilege names to LocalPrivilege data
      */
-    @Deprecated
-    @Override
-    public void createAce(String principalId, String[] grantedPrivilegeNames, String[] deniedPrivilegeNames,
-            String order, Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions,
-            Set<String> removedRestrictionNames) throws RepositoryException {
+    protected Map<String, LocalPrivilege> toLocalPrivileges(String[] grantedPrivilegeNames,
+            String[] deniedPrivilegeNames) {
         // first start with an empty map
         Map<String, LocalPrivilege> privilegeToLocalPrivilegesMap = new LinkedHashMap<>();
 
@@ -892,6 +890,19 @@ public class DefaultContentCreator implements ContentCreator {
                 lp.setDeny(true);
             }
         }
+        return privilegeToLocalPrivilegesMap;
+    }
+
+    /**
+     * @deprecated use {@link #createAce(String, Collection, String)} instead
+     */
+    @Deprecated
+    @Override
+    public void createAce(String principalId, String[] grantedPrivilegeNames, String[] deniedPrivilegeNames,
+            String order, Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions,
+            Set<String> removedRestrictionNames) throws RepositoryException {
+        Map<String, LocalPrivilege> privilegeToLocalPrivilegesMap = toLocalPrivileges(grantedPrivilegeNames,
+                deniedPrivilegeNames);
 
         Set<LocalRestriction> restrictionsSet = new HashSet<>();
         if (restrictions != null) {
