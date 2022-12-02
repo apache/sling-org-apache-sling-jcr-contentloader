@@ -64,6 +64,14 @@ public class LocalRestrictionTest {
 
         LocalRestriction lr3 = new LocalRestriction(AccessControlConstants.REP_GLOB, val("/hello1"));
         assertEquals(lr1.hashCode(), lr3.hashCode());
+
+        LocalRestriction lr4 = new LocalRestriction(null, (Value)null);
+        LocalRestriction lr5 = new LocalRestriction(null, (Value[])null);
+        assertNotSame(lr4.hashCode(), lr5.hashCode());
+        LocalRestriction lr6 = new LocalRestriction(null, (Value)null);
+        assertEquals(lr4.hashCode(), lr6.hashCode());
+        LocalRestriction lr7 = new LocalRestriction(null, (Value[])null);
+        assertEquals(lr5.hashCode(), lr7.hashCode());
     }
 
     /**

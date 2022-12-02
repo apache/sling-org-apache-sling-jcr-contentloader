@@ -940,7 +940,7 @@ public class DefaultContentCreator implements ContentCreator {
 
         // validate that the principal name is valid
         PrincipalManager principalManager = AccessControlUtil.getPrincipalManager(jcrSession);
-        Principal principal = principalManager.getPrincipal(principalId);
+        Principal principal = principalId == null ? null : principalManager.getPrincipal(principalId);
         if (principal == null) {
             // SLING-7268 - as pointed out in OAK-5496, we cannot successfully use
             // PrincipalManager#getPrincipal in oak
@@ -1218,10 +1218,12 @@ public class DefaultContentCreator implements ContentCreator {
             } else if (order.startsWith("after ")) {
                 String afterPrincipalName = order.substring(6);
 
+                boolean foundPrincipal = false;
                 //find the index of the ACE of the 'after' principal
                 for (int i = accessControlEntries.length - 1; i >= 0; i--) {
                     if (afterPrincipalName.equals(accessControlEntries[i].getPrincipal().getName())) {
                         //found it!
+                        foundPrincipal = true;
 
                         // the 'before' ACE is the next one after the 'after' ACE
                         if (i >= accessControlEntries.length - 1) {
@@ -1234,7 +1236,7 @@ public class DefaultContentCreator implements ContentCreator {
                     }
                 }
 
-                if (beforeEntry == null) {
+                if (!foundPrincipal) {
                     //didn't find an ACE that matched the 'after' principal
                     throw new IllegalArgumentException("No ACE was found for the specified principal: " + afterPrincipalName);
                 }

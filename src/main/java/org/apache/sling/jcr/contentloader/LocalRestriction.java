@@ -39,7 +39,7 @@ public class LocalRestriction {
         super();
         this.restriction = restriction;
         this.multival = false;
-        this.values = new Value[] {value};
+        this.values = value == null ? null : new Value[] {value};
     }
 
     public String getName() {
