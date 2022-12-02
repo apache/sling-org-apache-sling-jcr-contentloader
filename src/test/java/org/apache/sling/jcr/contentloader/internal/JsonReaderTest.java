@@ -20,7 +20,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -29,6 +32,7 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonWriter;
 
 import org.apache.sling.jcr.contentloader.ContentCreator;
+import org.apache.sling.jcr.contentloader.LocalPrivilege;
 import org.apache.sling.jcr.contentloader.internal.readers.JsonReader;
 import org.jmock.Expectations;
 import org.jmock.Sequence;
@@ -446,6 +450,19 @@ public class JsonReaderTest {
         this.parse(json);
     }
 
+    /**
+     * Return a collection that will pass the equals checking by mockit
+     * @param localPrivileges the privileges to make a collection
+     * @return collection of local privileges
+     */
+    private Collection<LocalPrivilege> toCollection(LocalPrivilege ... localPrivileges) {
+        List<LocalPrivilege> list = new ArrayList<>();
+        for (LocalPrivilege lp: localPrivileges) {
+            list.add(lp);
+        }
+        return list;
+    }
+
     @org.junit.Test
     public void testCreateAcl() throws Exception {
         String json = " { " + "\"security:acl\" : [ " + "  { " + "    \"principal\" : \"username1\","
@@ -453,17 +470,25 @@ public class JsonReaderTest {
                 + "    \"principal\" : \"groupname1\"," + "    \"granted\" : [\"jcr:read\",\"jcr:write\"]" + "  },"
                 + "  {" + "    \"principal\" : \"groupname2\"," + "    \"granted\" : [\"jcr:read\"],"
                 + "    \"denied\" : [\"jcr:write\"]," + "    \"order\" : \"first\"" + "  }" + "]" + "}";
+
+        LocalPrivilege readAllow = new LocalPrivilege("jcr:read");
+        readAllow.setAllow(true);
+        LocalPrivilege writeAllow = new LocalPrivilege("jcr:write");
+        writeAllow.setAllow(true);
+        LocalPrivilege writeDeny = new LocalPrivilege("jcr:write");
+        writeDeny.setDeny(true);
+
         this.mockery.checking(new Expectations() {
             {
                 allowing(creator).createNode(null, null, null);
                 inSequence(mySequence);
-                allowing(creator).createAce("username1", new String[] { "jcr:read", "jcr:write" }, new String[] {},
-                        null);
+                allowing(creator).getParent();
                 inSequence(mySequence);
-                allowing(creator).createAce("groupname1", new String[] { "jcr:read", "jcr:write" }, null, null);
+                allowing(creator).createAce("username1", toCollection(readAllow, writeAllow), null);
                 inSequence(mySequence);
-                allowing(creator).createAce("groupname2", new String[] { "jcr:read" }, new String[] { "jcr:write" },
-                        "first");
+                allowing(creator).createAce("groupname1", toCollection(readAllow, writeAllow), null);
+                inSequence(mySequence);
+                allowing(creator).createAce("groupname2", toCollection(readAllow, writeDeny), "first");
                 inSequence(mySequence);
                 allowing(creator).finishNode();
                 inSequence(mySequence);
@@ -481,17 +506,25 @@ public class JsonReaderTest {
                 + "    'principal' : 'groupname1'," + "    'granted' : ['jcr:read','jcr:write']" + "  }," + "  {"
                 + "    'principal' : \"\\\"'groupname2'\"," + "    'granted' : ['jcr:read'],"
                 + "    'denied' : ['jcr:write']," + "    'order' : 'first'" + "  }" + "]" + "}";
+
+        LocalPrivilege readAllow = new LocalPrivilege("jcr:read");
+        readAllow.setAllow(true);
+        LocalPrivilege writeAllow = new LocalPrivilege("jcr:write");
+        writeAllow.setAllow(true);
+        LocalPrivilege writeDeny = new LocalPrivilege("jcr:write");
+        writeDeny.setDeny(true);
+
         this.mockery.checking(new Expectations() {
             {
                 allowing(creator).createNode(null, null, null);
                 inSequence(mySequence);
-                allowing(creator).createAce("username1", new String[] { "jcr:read", "jcr:write" }, new String[] {},
-                        null);
+                allowing(creator).getParent();
                 inSequence(mySequence);
-                allowing(creator).createAce("groupname1", new String[] { "jcr:read", "jcr:write" }, null, null);
+                allowing(creator).createAce("username1", toCollection(readAllow, writeAllow), null);
                 inSequence(mySequence);
-                allowing(creator).createAce("\"'groupname2'", new String[] { "jcr:read" }, new String[] { "jcr:write" },
-                        "first");
+                allowing(creator).createAce("groupname1", toCollection(readAllow, writeAllow), null);
+                inSequence(mySequence);
+                allowing(creator).createAce("\"'groupname2'", toCollection(readAllow, writeDeny), "first");
                 inSequence(mySequence);
                 allowing(creator).finishNode();
                 inSequence(mySequence);

@@ -1,0 +1,63 @@
+{
+    "jcr:primaryType" : "sling:Folder",
+    "security:principals": [
+        { 
+            "name": "sling11713_user", 
+            "password": "mypassword"
+        },
+        { 
+            "name": "sling11713_group", 
+            "isgroup": true,
+            "members":[
+               "sling11713_user"
+            ]
+        }
+    ],
+    "security:acl": [
+        { 
+            "principal": "everyone", 
+            "granted": [
+                "jcr:read"
+            ],
+            "privileges":{
+                "jcr:write":{
+                    "allow":{
+                        "rep:glob":"glob1allow"
+                    },
+                    "deny":{
+                        "rep:glob":"glob1deny"
+                    }
+                }
+            }
+        },
+        { 
+            "principal": "sling11713_user", 
+            "privileges":{
+                "jcr:read": {
+                    "allow": true
+                },
+                "jcr:write":{
+                    "allow":{
+                        "rep:glob":"glob1allow"
+                    },
+                    "deny":{
+                        "rep:glob":"glob1deny"
+                    }
+                }
+            }
+        },
+        { 
+            "principal": "sling11713_group", 
+            "privileges":{
+                "jcr:modifyAccessControl":{
+                    "allow": {
+                        "rep:itemNames": [
+                            "name1",
+                            "name2"
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -26,10 +26,12 @@ import java.security.Principal;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -50,21 +52,35 @@ import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.AccessControlList;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.AccessControlPolicyIterator;
+import javax.jcr.security.Privilege;
 import javax.jcr.version.VersionManager;
 
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.sling.jcr.base.util.AccessControlUtil;
 import org.apache.sling.jcr.contentloader.ContentCreator;
 import org.apache.sling.jcr.contentloader.ContentImportListener;
 import org.apache.sling.jcr.contentloader.ContentReader;
 import org.apache.sling.jcr.contentloader.ImportOptions;
+import org.apache.sling.jcr.contentloader.LocalPrivilege;
+import org.apache.sling.jcr.contentloader.LocalRestriction;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -884,6 +900,357 @@ public class DefaultContentCreator implements ContentCreator {
         if ((grantedPrivilegeNames != null) || (deniedPrivilegeNames != null)) {
             AccessControlUtil.replaceAccessControlEntry(session, resourcePath, principal, grantedPrivilegeNames, deniedPrivilegeNames, null, order, 
             		restrictions, mvRestrictions, removedRestrictionNames);
+        }
+    }
+
+    @Override
+    public void createAce(String principalId, Collection<LocalPrivilege> privileges, String order)
+            throws RepositoryException {
+        final Node parentNode = this.parentNodeStack.peek();
+        Session jcrSession = parentNode.getSession();
+
+        // validate that the principal name is valid
+        PrincipalManager principalManager = AccessControlUtil.getPrincipalManager(jcrSession);
+        Principal principal = principalManager.getPrincipal(principalId);
+        if (principal == null) {
+            // SLING-7268 - as pointed out in OAK-5496, we cannot successfully use
+            // PrincipalManager#getPrincipal in oak
+            // without the session that created the principal getting saved first (and a
+            // subsequent index update).
+            // Workaround by trying the UserManager#getAuthorizable API to locate the
+            // principal.
+            UserManager userManager = AccessControlUtil.getUserManager(jcrSession);
+            final Authorizable authorizable = userManager.getAuthorizable(principalId);
+            if (authorizable != null) {
+                principal = authorizable.getPrincipal();
+            }
+        }
+
+        if (principal == null) {
+            throw new RepositoryException("No principal found for id: " + principalId);
+        }
+
+        // validate that the privilege names are valid
+        AccessControlManager acm = AccessControlUtil.getAccessControlManager(jcrSession);
+        for (LocalPrivilege localPrivilege: privileges) {
+            localPrivilege.checkPrivilege(acm);
+        }
+
+        String resourcePath = parentNode.getPath();
+
+        // build a list of each of the LocalPrivileges that have the same restrictions
+        Map<Set<LocalRestriction>, List<LocalPrivilege>> allowRestrictionsToLocalPrivilegesMap = new HashMap<>();
+        Map<Set<LocalRestriction>, List<LocalPrivilege>> denyRestrictionsToLocalPrivilegesMap = new HashMap<>();
+        for (LocalPrivilege localPrivilege: privileges) {
+            if (localPrivilege.isAllow()) {
+                List<LocalPrivilege> list = allowRestrictionsToLocalPrivilegesMap.computeIfAbsent(localPrivilege.getAllowRestrictions(), key -> new ArrayList<>());
+                list.add(localPrivilege);
+            }
+            if (localPrivilege.isDeny()) {
+                List<LocalPrivilege> list = denyRestrictionsToLocalPrivilegesMap.computeIfAbsent(localPrivilege.getDenyRestrictions(), key -> new ArrayList<>());
+                list.add(localPrivilege);
+            }
+        }
+
+        try {
+            // Get or create the ACL for the node.
+            JackrabbitAccessControlList acl = getAcl(acm, resourcePath, principal);
+
+            // remove all the old aces for the principal
+            order = removeAces(resourcePath, order, principal, acl);
+
+            // now add all the new aces that we have collected
+            Map<Privilege, Integer> privilegeLongestDepthMap = buildPrivilegeLongestDepthMap(acm.privilegeFromName(PrivilegeConstants.JCR_ALL));
+            addAces(resourcePath, principal, denyRestrictionsToLocalPrivilegesMap, false, acl, privilegeLongestDepthMap);
+            addAces(resourcePath, principal, allowRestrictionsToLocalPrivilegesMap, true, acl, privilegeLongestDepthMap);
+
+            // reorder the aces
+            reorderAccessControlEntries(acl, principal, order);
+
+            // Store the actual changes.
+            acm.setPolicy(acl.getPath(), acl);
+        } catch (RepositoryException re) {
+            throw new RepositoryException("Failed to create ace.", re);
+        }
+    }
+
+    /**
+     * If the privilege is contained in multiple aggregate privileges, then
+     * calculate the instance with the greatest depth.
+     */
+    private static void toLongestDepth(int parentDepth, Privilege parentPrivilege, Map<Privilege, Integer> privilegeToLongestDepth) {
+        Privilege[] declaredAggregatePrivileges = parentPrivilege.getDeclaredAggregatePrivileges();
+        for (Privilege privilege : declaredAggregatePrivileges) {
+            Integer oldValue = privilegeToLongestDepth.get(privilege);
+            int candidateDepth = parentDepth + 1;
+            if (oldValue == null || oldValue.intValue() < candidateDepth) {
+                privilegeToLongestDepth.put(privilege, candidateDepth);
+
+                // continue drilling down to the leaf privileges
+                toLongestDepth(candidateDepth, privilege, privilegeToLongestDepth);
+            }
+        }
+    }
+
+    /**
+     * Calculate the longest path for each of the possible privileges
+     * 
+     * @param jcrSession the current users JCR session
+     * @return map where the key is the privilege and the value is the longest path
+     */
+    public static Map<Privilege, Integer> buildPrivilegeLongestDepthMap(Privilege jcrAll) {
+        Map<Privilege, Integer> privilegeToLongestPath = new HashMap<>();
+        privilegeToLongestPath.put(jcrAll, 1);
+        toLongestDepth(1, jcrAll, privilegeToLongestPath);
+        return privilegeToLongestPath;
+    }
+
+    /**
+     * Lookup the ACL for the given resource
+     * 
+     * @param acm the access control manager
+     * @param resourcePath the resource path
+     * @param principal the principal for principalbased ACL
+     * @return the found ACL object
+     */
+    protected JackrabbitAccessControlList getAcl(@NotNull AccessControlManager acm, String resourcePath, Principal principal)
+            throws RepositoryException {
+        AccessControlPolicy[] policies = acm.getPolicies(resourcePath);
+        JackrabbitAccessControlList acl = null;
+        for (AccessControlPolicy policy : policies) {
+            if (policy instanceof JackrabbitAccessControlList) {
+                acl = (JackrabbitAccessControlList) policy;
+                break;
+            }
+        }
+        if (acl == null) {
+            AccessControlPolicyIterator applicablePolicies = acm.getApplicablePolicies(resourcePath);
+            while (applicablePolicies.hasNext()) {
+                AccessControlPolicy policy = applicablePolicies.nextAccessControlPolicy();
+                if (policy instanceof JackrabbitAccessControlList) {
+                    acl = (JackrabbitAccessControlList) policy;
+                    break;
+                }
+            }
+        }
+        return acl;
+    }
+
+    /**
+     * Remove all of the ACEs for the specified principal from the ACL
+     * 
+     * @param order the requested order (may be null)
+     * @param principal the principal whose aces should be removed
+     * @param acl the access control list to update
+     * @return the original order if it was supplied, otherwise the order of the first ACE 
+     */
+    protected String removeAces(@NotNull String resourcePath, @Nullable String order, @NotNull Principal principal, @NotNull JackrabbitAccessControlList acl) // NOSONAR
+            throws RepositoryException {
+        AccessControlEntry[] existingAccessControlEntries = acl.getAccessControlEntries();
+
+        if (order == null || order.length() == 0) {
+            //order not specified, so keep track of the original ACE position.
+            Set<Principal> processedPrincipals = new HashSet<>();
+            for (int j = 0; j < existingAccessControlEntries.length; j++) {
+                AccessControlEntry ace = existingAccessControlEntries[j];
+                Principal principal2 = ace.getPrincipal();
+                if (principal2.equals(principal)) {
+                    order = String.valueOf(processedPrincipals.size());
+                    break;
+                } else {
+                    processedPrincipals.add(principal2);
+                }
+            }
+        }
+
+        for (int j = 0; j < existingAccessControlEntries.length; j++) {
+            AccessControlEntry ace = existingAccessControlEntries[j];
+            if (ace.getPrincipal().equals(principal)) {
+                acl.removeAccessControlEntry(ace);
+            }
+        }
+        return order;
+    }
+
+    /**
+     * Add ACEs for the specified principal to the ACL.  One ACE is added for each unique
+     * restriction set.
+     * 
+     * @param resourcePath the path of the resource
+     * @param principal the principal whose aces should be added
+     * @param restrictionsToLocalPrivilegesMap the map containing the restrictions mapped to the LocalPrivlege items with those resrictions
+     * @param isAllow true for 'allow' ACE, false for 'deny' ACE
+     * @param acl the access control list to update
+     */
+    protected void addAces(@NotNull String resourcePath, @NotNull Principal principal,
+            @NotNull Map<Set<LocalRestriction>, List<LocalPrivilege>> restrictionsToLocalPrivilegesMap,
+            boolean isAllow,
+            @NotNull JackrabbitAccessControlList acl,
+            Map<Privilege, Integer> privilegeLongestDepthMap) throws RepositoryException {
+
+        List<Entry<Set<LocalRestriction>, List<LocalPrivilege>>> sortedEntries = new ArrayList<>(restrictionsToLocalPrivilegesMap.entrySet());
+        // sort the entries by the most shallow depth of the contained privileges
+        Collections.sort(sortedEntries, (e1, e2) -> {
+                        int shallowestDepth1 = Integer.MAX_VALUE;
+                        for (LocalPrivilege lp : e1.getValue()) {
+                            Integer depth = privilegeLongestDepthMap.get(lp.getPrivilege());
+                            if (depth != null && depth.intValue() < shallowestDepth1) {
+                                shallowestDepth1 = depth.intValue();
+                            }
+                        }
+                        int shallowestDepth2 = Integer.MAX_VALUE;
+                        for (LocalPrivilege lp : e2.getValue()) {
+                            Integer depth = privilegeLongestDepthMap.get(lp.getPrivilege());
+                            if (depth != null && depth.intValue() < shallowestDepth2) {
+                                shallowestDepth2 = depth.intValue();
+                            }
+                        }
+                        return Integer.compare(shallowestDepth1, shallowestDepth2);
+                    });
+
+        for (Entry<Set<LocalRestriction>, List<LocalPrivilege>> entry: sortedEntries) {
+            Set<Privilege> privilegesSet = new HashSet<>();
+            Map<String, Value> restrictions = new HashMap<>(); 
+            Map<String, Value[]> mvRestrictions = new HashMap<>();
+
+            Set<LocalRestriction> localRestrictions = entry.getKey();
+            for (LocalRestriction localRestriction : localRestrictions) {
+                if (localRestriction.isMultiValue()) {
+                    mvRestrictions.put(localRestriction.getName(), localRestriction.getValues());
+                } else {
+                    restrictions.put(localRestriction.getName(), localRestriction.getValue());
+                }
+            }
+
+            for (LocalPrivilege localPrivilege : entry.getValue()) {
+                privilegesSet.add(localPrivilege.getPrivilege());
+            }
+
+            if (!privilegesSet.isEmpty()) {
+                acl.addEntry(principal, privilegesSet.toArray(new Privilege[privilegesSet.size()]), isAllow, restrictions, mvRestrictions);
+            }
+        }
+    }
+
+    /**
+     * Move the ACE(s) for the specified principal to the position specified by the 'order'
+     * parameter. This is a copy of the private AccessControlUtil.reorderAccessControlEntries method.
+     *
+     * @param acl the acl of the node containing the ACE to position
+     * @param principal the user or group of the ACE to position
+     * @param order where the access control entry should go in the list.
+     *         Value should be one of these:
+     *         <table>
+     *          <caption>Values</caption>
+     *          <tr><td>first</td><td>Place the target ACE as the first amongst its siblings</td></tr>
+     *          <tr><td>last</td><td>Place the target ACE as the last amongst its siblings</td></tr>
+     *          <tr><td>before xyz</td><td>Place the target ACE immediately before the sibling whose name is xyz</td></tr>
+     *          <tr><td>after xyz</td><td>Place the target ACE immediately after the sibling whose name is xyz</td></tr>
+     *          <tr><td>numeric</td><td>Place the target ACE at the specified index</td></tr>
+     *         </table>
+     * @throws RepositoryException
+     * @throws UnsupportedRepositoryOperationException
+     * @throws AccessControlException
+     */
+    private static void reorderAccessControlEntries(AccessControlList acl,
+            Principal principal, String order) throws RepositoryException {
+        if (order == null || order.length() == 0) {
+            return; //nothing to do
+        }
+        if (acl instanceof JackrabbitAccessControlList) {
+            JackrabbitAccessControlList jacl = (JackrabbitAccessControlList)acl;
+
+            AccessControlEntry[] accessControlEntries = jacl.getAccessControlEntries();
+            if (accessControlEntries.length <= 1) {
+                return; //only one ACE, so nothing to reorder.
+            }
+
+            AccessControlEntry beforeEntry = null;
+            if ("first".equals(order)) {
+                beforeEntry = accessControlEntries[0];
+            } else if ("last".equals(order)) {
+                // add to the end is the same as default
+            } else if (order.startsWith("before ")) {
+                String beforePrincipalName = order.substring(7);
+
+                //find the index of the ACE of the 'before' principal
+                for (int i=0; i < accessControlEntries.length; i++) {
+                    if (beforePrincipalName.equals(accessControlEntries[i].getPrincipal().getName())) {
+                        //found it!
+                        beforeEntry = accessControlEntries[i];
+                        break;
+                    }
+                }
+
+                if (beforeEntry == null) {
+                    //didn't find an ACE that matched the 'before' principal
+                    throw new IllegalArgumentException("No ACE was found for the specified principal: " + beforePrincipalName);
+                }
+            } else if (order.startsWith("after ")) {
+                String afterPrincipalName = order.substring(6);
+
+                //find the index of the ACE of the 'after' principal
+                for (int i = accessControlEntries.length - 1; i >= 0; i--) {
+                    if (afterPrincipalName.equals(accessControlEntries[i].getPrincipal().getName())) {
+                        //found it!
+
+                        // the 'before' ACE is the next one after the 'after' ACE
+                        if (i >= accessControlEntries.length - 1) {
+                            //the after is the last one in the list
+                            beforeEntry = null;
+                        } else {
+                            beforeEntry = accessControlEntries[i + 1];
+                        }
+                        break;
+                    }
+                }
+
+                if (beforeEntry == null) {
+                    //didn't find an ACE that matched the 'after' principal
+                    throw new IllegalArgumentException("No ACE was found for the specified principal: " + afterPrincipalName);
+                }
+            } else {
+                int index = -1;
+                try {
+                    index = Integer.parseInt(order);
+                } catch (NumberFormatException nfe) {
+                    //not a number.
+                    throw new IllegalArgumentException("Illegal value for the order parameter: " + order);
+                }
+                if (index > accessControlEntries.length) {
+                    //invalid index
+                    throw new IndexOutOfBoundsException("Index value is too large: " + index);
+                }
+
+                //the index value is the index of the principal.  A principal may have more
+                // than one ACEs (deny + grant), so we need to compensate.
+                Map<Principal, Integer> principalToIndex = new HashMap<>();
+                for (int i = 0; i < accessControlEntries.length; i++) {
+                    Principal principal2 = accessControlEntries[i].getPrincipal();
+                    Integer idx = i;
+                    principalToIndex.computeIfAbsent(principal2, key -> idx);
+                }
+                Integer[] sortedIndexes = principalToIndex.values().stream()
+                        .sorted()
+                        .toArray(size -> new Integer[size]);
+                if (index >= 0 && index < sortedIndexes.length - 1) {
+                    int idx = sortedIndexes[index];
+                    beforeEntry = accessControlEntries[idx];
+                }
+            }
+
+            if (beforeEntry != null) {
+                //now loop through the entries to move the affected ACEs to the specified
+                // position.
+                for (AccessControlEntry ace : accessControlEntries) {
+                    if (principal.equals(ace.getPrincipal())) {
+                        //this ACE is for the specified principal.
+                        jacl.orderBefore(ace, beforeEntry);
+                    }
+                }
+            }
+        } else {
+            throw new IllegalArgumentException("The acl must be an instance of JackrabbitAccessControlList");
         }
     }
 

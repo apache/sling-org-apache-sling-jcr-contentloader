@@ -25,10 +25,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -47,14 +51,18 @@ import javax.json.JsonString;
 import javax.json.JsonValue;
 import javax.json.JsonValue.ValueType;
 
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositeRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.sling.jcr.contentloader.ContentCreator;
 import org.apache.sling.jcr.contentloader.ContentReader;
+import org.apache.sling.jcr.contentloader.LocalPrivilege;
+import org.apache.sling.jcr.contentloader.LocalRestriction;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.annotations.Component;
 
@@ -465,115 +473,85 @@ public class JsonReader implements ContentReader {
      */
     private void createAce(JsonObject ace, ContentCreator contentCreator) throws RepositoryException {
         String principalID = ace.getString("principal");
-
-        String[] grantedPrivileges = null;
-        JsonArray granted = (JsonArray) ace.get("granted");
-        if (granted != null) {
-            grantedPrivileges = new String[granted.size()];
-            for (int a = 0; a < grantedPrivileges.length; a++) {
-                grantedPrivileges[a] = granted.getString(a);
-            }
-        }
-
-        String[] deniedPrivileges = null;
-        JsonArray denied = (JsonArray) ace.get("denied");
-        if (denied != null) {
-            deniedPrivileges = new String[denied.size()];
-            for (int a = 0; a < deniedPrivileges.length; a++) {
-                deniedPrivileges[a] = denied.getString(a);
-            }
-        }
-
         String order = ace.getString("order", null);
 
-        Map<String, Value> restrictionsMap = null;
-        Map<String, Value[]> mvRestrictionsMap = null;
-        Set<String> removedRestrictionNames = null;
-        JsonObject restrictions = (JsonObject) ace.get("restrictions");
-        if (restrictions != null) {
-            // lazy initialized map for quick lookup when processing restrictions
-            Map<String, RestrictionDefinition> supportedRestrictionsMap = new HashMap<>();
+        // first start with an empty map
+        Map<String, LocalPrivilege> privilegeToLocalPrivilegesMap = new LinkedHashMap<>();
 
-            Node parentNode = contentCreator.getParent();
+        Node parentNode = contentCreator.getParent();
+        ValueFactory vf = parentNode.getSession().getValueFactory();
 
-            RestrictionProvider restrictionProvider = null;
-            Bundle bundle = FrameworkUtil.getBundle(getClass());
-            BundleContext bundleContext = bundle.getBundleContext();
-            ServiceReference<RestrictionProvider> serviceReference = null;
-            try {
-                serviceReference = bundleContext.getServiceReference(RestrictionProvider.class);
-                restrictionProvider = bundleContext.getService(serviceReference);
+        // Calculate a map of restriction names to the restriction definition.
+        // Use for fast lookup during the calls below.
+        Map<String, RestrictionDefinition> srMap = toSrMap(parentNode);
 
-                if (restrictionProvider == null) {
-                    throw new JsonException(
-                            "No restriction provider is available so unable to process restriction values");
-                }
+        // for backward compatibility, process the older syntax
+        JsonArray granted = (JsonArray) ace.get("granted");
+        JsonArray denied = (JsonArray) ace.get("denied");
+        if (granted != null || denied != null) {
+            JsonValue restrictions = ace.get("restrictions");
+            Set<LocalRestriction> restrictionsSet = Collections.emptySet();
+            if (restrictions instanceof JsonObject) {
+                restrictionsSet = toLocalRestrictions((JsonObject)restrictions, srMap, vf);
+            }
 
-                // populate the map
-                Set<RestrictionDefinition> supportedRestrictions = restrictionProvider
-                        .getSupportedRestrictions(parentNode.getPath());
-                for (RestrictionDefinition restrictionDefinition : supportedRestrictions) {
-                    supportedRestrictionsMap.put(restrictionDefinition.getName(), restrictionDefinition);
-                }
-            } finally {
-                if (serviceReference != null) {
-                    bundleContext.ungetService(serviceReference);
+            if (granted != null) {
+                for (int a = 0; a < granted.size(); a++) {
+                    String privilegeName = granted.getString(a);
+                    LocalPrivilege lp = privilegeToLocalPrivilegesMap.computeIfAbsent(privilegeName, LocalPrivilege::new);
+                    lp.setAllow(true);
+                    lp.setAllowRestrictions(restrictionsSet);
                 }
             }
 
-            restrictionsMap = new HashMap<>();
-            mvRestrictionsMap = new HashMap<>();
-            removedRestrictionNames = new HashSet<>();
+            if (denied != null) {
+                for (int a = 0; a < denied.size(); a++) {
+                    String privilegeName = denied.getString(a);
+                    LocalPrivilege lp = privilegeToLocalPrivilegesMap.computeIfAbsent(privilegeName, LocalPrivilege::new);
+                    lp.setDeny(true);
+                    lp.setDenyRestrictions(restrictionsSet);
+                }
+            }
+        }
 
-            ValueFactory factory = parentNode.getSession().getValueFactory();
-
-            Set<String> keySet = restrictions.keySet();
-            for (String rname : keySet) {
-                if (rname.endsWith("@Delete")) {
-                    // add the key to the 'remove' set. the value doesn't matter and is ignored.
-                    String rname2 = rname.substring(9, rname.length() - 7);
-                    removedRestrictionNames.add(rname2);
-                } else {
-                    RestrictionDefinition rd = supportedRestrictionsMap.get(rname);
-                    if (rd == null) {
-                        // illegal restriction name?
-                        throw new JsonException("Invalid or not supported restriction name was supplied: " + rname);
+        // now process the newer syntax
+        JsonValue privileges = ace.get("privileges");
+        if (privileges instanceof JsonObject) {
+            JsonObject privilegesObj = (JsonObject)privileges;
+            for (Entry<String, JsonValue> entry : privilegesObj.entrySet()) {
+                String privilegeName = entry.getKey();
+                JsonValue privilegeValue = entry.getValue();
+                if (privilegeValue instanceof JsonObject) {
+                    JsonObject privilegeValueObj = (JsonObject)privilegeValue;
+                    JsonValue allow = privilegeValueObj.get("allow");
+                    boolean isAllow = false;
+                    Set<LocalRestriction> allowRestrictions = Collections.emptySet(); 
+                    if (allow instanceof JsonObject) {
+                        isAllow = true;
+                        allowRestrictions = toLocalRestrictions((JsonObject)allow, srMap, vf);
+                    } else if (JsonValue.TRUE.equals(allow)) {
+                        isAllow = true;
                     }
 
-                    boolean multival = rd.getRequiredType().isArray();
-                    int restrictionType = rd.getRequiredType().tag();
+                    JsonValue deny = privilegeValueObj.get("deny");
+                    boolean isDeny = false;
+                    Set<LocalRestriction> denyRestrictions = Collections.emptySet(); 
+                    if (deny instanceof JsonObject) {
+                        isDeny = true;
+                        denyRestrictions = toLocalRestrictions((JsonObject)deny, srMap, vf);
+                    } else if (JsonValue.TRUE.equals(deny)) {
+                        isDeny = true;
+                    }
 
-                    // read the requested restriction value and apply it
-                    JsonValue jsonValue = restrictions.get(rname);
-
-                    if (multival) {
-                        if (jsonValue.getValueType() == ValueType.ARRAY) {
-                            JsonArray jsonArray = (JsonArray) jsonValue;
-                            int size = jsonArray.size();
-                            Value[] values = new Value[size];
-                            for (int i = 0; i < size; i++) {
-                                values[i] = toValue(factory, jsonArray.get(i), restrictionType);
-                            }
-                            mvRestrictionsMap.put(rname, values);
-                        } else {
-                            Value v = toValue(factory, jsonValue, restrictionType);
-                            mvRestrictionsMap.put(rname, new Value[] { v });
+                    if (isAllow || isDeny) {
+                        LocalPrivilege lp = privilegeToLocalPrivilegesMap.computeIfAbsent(privilegeName, LocalPrivilege::new);
+                        if (isAllow) {
+                            lp.setAllow(true);
+                            lp.setAllowRestrictions(allowRestrictions);
                         }
-                    } else {
-                        if (jsonValue.getValueType() == ValueType.ARRAY) {
-                            JsonArray jsonArray = (JsonArray) jsonValue;
-                            int size = jsonArray.size();
-                            if (size == 1) {
-                                Value v = toValue(factory, jsonArray.get(0), restrictionType);
-                                restrictionsMap.put(rname, v);
-                            } else if (size > 1) {
-                                throw new JsonException(
-                                        "Unexpected multi value array data found for single-value restriction value for name: "
-                                                + rname);
-                            }
-                        } else {
-                            Value v = toValue(factory, jsonValue, restrictionType);
-                            restrictionsMap.put(rname, v);
+                        if (isDeny) {
+                            lp.setDeny(true);
+                            lp.setDenyRestrictions(denyRestrictions);
                         }
                     }
                 }
@@ -581,12 +559,113 @@ public class JsonReader implements ContentReader {
         }
 
         // do the work.
-        if (restrictionsMap == null && mvRestrictionsMap == null && removedRestrictionNames == null) {
-            contentCreator.createAce(principalID, grantedPrivileges, deniedPrivileges, order);
-        } else {
-            contentCreator.createAce(principalID, grantedPrivileges, deniedPrivileges, order, restrictionsMap,
-                    mvRestrictionsMap, removedRestrictionNames == null ? null : removedRestrictionNames);
+        contentCreator.createAce(principalID, new ArrayList<>(privilegeToLocalPrivilegesMap.values()), order);
+    }
+
+    /**
+     * Calculate a map of restriction names to the restriction definition
+     * 
+     * @param parentNode the node the restrictions are for
+     */
+    protected Map<String, RestrictionDefinition> toSrMap(Node parentNode)
+            throws RepositoryException {
+        // lazy initialized map for quick lookup when processing restrictions
+        Map<String, RestrictionDefinition> supportedRestrictionsMap = new HashMap<>();
+
+        RestrictionProvider compositeRestrictionProvider = null;
+        Set<RestrictionProvider> restrictionProviders = new HashSet<>();
+
+        Bundle bundle = FrameworkUtil.getBundle(getClass());
+        if (bundle != null) {
+            BundleContext bundleContext = bundle.getBundleContext();
+            Collection<ServiceReference<RestrictionProvider>> serviceReferences = null;
+            try {
+                serviceReferences = bundleContext.getServiceReferences(RestrictionProvider.class, null);
+                for (ServiceReference<RestrictionProvider> serviceReference : serviceReferences) {
+                    RestrictionProvider service = bundleContext.getService(serviceReference);
+                    restrictionProviders.add(service);
+                }
+                compositeRestrictionProvider = CompositeRestrictionProvider.newInstance(restrictionProviders);
+
+                // populate the map
+                Set<RestrictionDefinition> supportedRestrictions = compositeRestrictionProvider
+                        .getSupportedRestrictions(parentNode.getPath());
+                for (RestrictionDefinition restrictionDefinition : supportedRestrictions) {
+                    supportedRestrictionsMap.put(restrictionDefinition.getName(), restrictionDefinition);
+                }
+            } catch (InvalidSyntaxException e) {
+                throw new RepositoryException(e);
+            } finally {
+                if (serviceReferences != null) {
+                    for (ServiceReference<RestrictionProvider> serviceReference : serviceReferences) {
+                        bundleContext.ungetService(serviceReference);
+                    }
+                }
+            }
         }
+        return supportedRestrictionsMap;
+    }
+
+    /**
+     * Construct a LocalRestriction using data from the json object
+     * 
+     * @param allowOrDenyObj the json object
+     * @param srMap map of restriction names to the restriction definition
+     * @param vf the ValueFactory
+     */
+    protected Set<LocalRestriction> toLocalRestrictions(JsonObject allowOrDenyObj,
+            Map<String, RestrictionDefinition> srMap,
+            ValueFactory vf) throws RepositoryException {
+        Set<LocalRestriction> restrictions = new HashSet<>();
+        for (Entry<String, JsonValue> restrictionEntry : allowOrDenyObj.entrySet()) {
+            String restrictionName = restrictionEntry.getKey();
+            RestrictionDefinition rd = srMap.get(restrictionName);
+            if (rd == null) {
+                // illegal restriction name?
+                throw new JsonException("Invalid or not supported restriction name was supplied: " + restrictionName);
+            }
+
+            boolean multival = rd.getRequiredType().isArray();
+            int restrictionType = rd.getRequiredType().tag();
+
+            LocalRestriction lr = null;
+            JsonValue jsonValue = restrictionEntry.getValue();
+
+            if (multival) {
+                if (jsonValue.getValueType() == ValueType.ARRAY) {
+                    JsonArray jsonArray = (JsonArray) jsonValue;
+                    int size = jsonArray.size();
+                    Value[] values = new Value[size];
+                    for (int i = 0; i < size; i++) {
+                        values[i] = toValue(vf, jsonArray.get(i), restrictionType);
+                    }
+                    lr = new LocalRestriction(restrictionName, values);
+                } else {
+                    Value v = toValue(vf, jsonValue, restrictionType);
+                    lr = new LocalRestriction(restrictionName, new Value[] { v });
+                }
+            } else {
+                if (jsonValue.getValueType() == ValueType.ARRAY) {
+                    JsonArray jsonArray = (JsonArray) jsonValue;
+                    int size = jsonArray.size();
+                    if (size == 1) {
+                        Value v = toValue(vf, jsonArray.get(0), restrictionType);
+                        lr = new LocalRestriction(restrictionName, v);
+                    } else if (size > 1) {
+                        throw new JsonException(
+                                "Unexpected multi value array data found for single-value restriction value for name: "
+                                        + restrictionName);
+                    }
+                } else {
+                    Value v = toValue(vf, jsonValue, restrictionType);
+                    lr = new LocalRestriction(restrictionName, v);
+                }
+            }
+            if (lr != null) {
+                restrictions.add(lr);
+            }
+        }
+        return restrictions;
     }
 
     /**
