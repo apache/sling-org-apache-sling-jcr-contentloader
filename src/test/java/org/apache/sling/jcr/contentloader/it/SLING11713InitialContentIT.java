@@ -176,17 +176,17 @@ public class SLING11713InitialContentIT extends ContentloaderTestSupport {
                 false, // isAllow
                 new String[] {"jcr:write"}, // PrivilegeNames
                 new String[] {"rep:glob"}, // RestrictionNames
-                new String[] {"glob1deny"}); // RestrictionValues
+                new String[][] {new String[]{"glob1deny"}}); // RestrictionValues
         assertAce(aceList.get(1), "sling11713_user",
                 true, // isAllow
                 new String[] {"jcr:read"}, // PrivilegeNames
                 new String[] {}, // RestrictionNames
-                new String[] {}); // RestrictionValues
+                new String[][] {}); // RestrictionValues
         assertAce(aceList.get(2), "sling11713_user",
                 true, // isAllow
                 new String[] {"jcr:write"}, // PrivilegeNames
                 new String[] {"rep:glob"}, // RestrictionNames
-                new String[] {"glob1allow"}); // RestrictionValues
+                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
 
         //check ACE for sling11713_group
         aceList = aceMap.get("sling11713_group");
@@ -196,7 +196,7 @@ public class SLING11713InitialContentIT extends ContentloaderTestSupport {
                 true, // isAllow
                 new String[] {"jcr:modifyAccessControl"}, // PrivilegeNames
                 new String[] {"rep:itemNames"}, // RestrictionNames
-                new String[] {"name1", "name2"}); // RestrictionValues
+                new String[][] {new String[]{"name1", "name2"}}); // RestrictionValues
 
         //check ACE for everyone
         aceList = aceMap.get("everyone");
@@ -206,22 +206,22 @@ public class SLING11713InitialContentIT extends ContentloaderTestSupport {
                 false, // isAllow
                 new String[] {"jcr:write"}, // PrivilegeNames
                 new String[] {"rep:glob"}, // RestrictionNames
-                new String[] {"glob1deny"}); // RestrictionValues
+                new String[][] {new String[]{"glob1deny"}}); // RestrictionValues
         assertAce(aceList.get(1), "everyone",
                 true, // isAllow
                 new String[] {"jcr:read"}, // PrivilegeNames
                 new String[] {}, // RestrictionNames
-                new String[] {}); // RestrictionValues
+                new String[][] {}); // RestrictionValues
         assertAce(aceList.get(2), "everyone",
                 true, // isAllow
                 new String[] {"jcr:write"}, // PrivilegeNames
                 new String[] {"rep:glob"}, // RestrictionNames
-                new String[] {"glob1allow"}); // RestrictionValues
+                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
     }
 
-    protected void assertAce(AccessControlEntry ace, String expectedPrincipal,
+    public static void assertAce(AccessControlEntry ace, String expectedPrincipal,
             boolean isAllow, String[] expectedPrivilegeNames,
-            String[] expectedRestrictionNames, String[] expectedRestrictionValues) throws RepositoryException {
+            String[] expectedRestrictionNames, String[][] expectedRestrictionValues) throws RepositoryException {
 
         assertNotNull("Expected ACE for test principal", expectedPrincipal);
         assertEquals(expectedPrincipal, ace.getPrincipal().getName());
@@ -251,21 +251,24 @@ public class SLING11713InitialContentIT extends ContentloaderTestSupport {
         }
 
         if (expectedRestrictionValues.length > 0) {
-            Value[] storedRestrictionValues = jace.getRestrictions(storedRestrictionNames[0]);
-            assertNotNull(storedRestrictionValues);
-            assertEquals(expectedRestrictionValues.length, storedRestrictionValues.length);
-            Set<String> restrictionValuesSet = Stream.of(storedRestrictionValues)
-                    .map(item -> {
-                        try {
-                            return item.getString();
-                        } catch (IllegalStateException | RepositoryException e) {
-                            // should never get here
-                            return null;
-                        }
-                    })
-                    .collect(Collectors.toSet());
-            for (String rv : expectedRestrictionValues) {
-                assertTrue("Expecting restriction value: " + rv, restrictionValuesSet.contains(rv));
+            for (int i = 0; i < expectedRestrictionValues.length; i++) {
+                String[] expected = expectedRestrictionValues[i];
+                Value[] storedRestrictionValues = jace.getRestrictions(storedRestrictionNames[i]);
+                assertNotNull(storedRestrictionValues);
+                assertEquals(expected.length, storedRestrictionValues.length);
+                Set<String> restrictionValuesSet = Stream.of(storedRestrictionValues)
+                        .map(item -> {
+                            try {
+                                return item.getString();
+                            } catch (IllegalStateException | RepositoryException e) {
+                                // should never get here
+                                return null;
+                            }
+                        })
+                        .collect(Collectors.toSet());
+                for (String rv : expected) {
+                    assertTrue("Expecting restriction value: " + rv, restrictionValuesSet.contains(rv));
+                }
             }
         }
     }

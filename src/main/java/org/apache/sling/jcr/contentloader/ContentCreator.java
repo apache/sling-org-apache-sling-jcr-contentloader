@@ -198,7 +198,9 @@ public interface ContentCreator {
      * @param mvRestrictions    specifies additional Map of multi-value restrictions to apply. (optional)
      * @param removedRestrictionNames optional set of restriction names that should be removed (if they already exist).
      * @throws RepositoryException If anything goes wrong.
+     * @deprecated use {@link #createAce(String, Collection, String)} instead
      */
+    @Deprecated
     default void createAce(String principal, String[] grantedPrivileges, String[] deniedPrivileges, String order, 
     		Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions, Set<String> removedRestrictionNames) throws RepositoryException {
     	throw new UnsupportedOperationException();

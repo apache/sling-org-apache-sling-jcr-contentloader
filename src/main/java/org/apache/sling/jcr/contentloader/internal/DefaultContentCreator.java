@@ -32,6 +32,7 @@ import java.util.Date;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -868,39 +869,56 @@ public class DefaultContentCreator implements ContentCreator {
      * org.apache.sling.jcr.contentloader.ContentCreator#createAce(java.lang.String,
      * java.lang.String[], java.lang.String[], java.lang.String, java.util.Map,
      * java.util.Map, java.util.Set)
+     * @deprecated use {@link #createAce(String, Collection, String)} instead
      */
+    @Deprecated
     @Override
     public void createAce(String principalId, String[] grantedPrivilegeNames, String[] deniedPrivilegeNames,
             String order, Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions,
             Set<String> removedRestrictionNames) throws RepositoryException {
-        final Node parentNode = this.parentNodeStack.peek();
-        Session session = parentNode.getSession();
+        // first start with an empty map
+        Map<String, LocalPrivilege> privilegeToLocalPrivilegesMap = new LinkedHashMap<>();
 
-        PrincipalManager principalManager = AccessControlUtil.getPrincipalManager(session);
-        Principal principal = principalManager.getPrincipal(principalId);
-        if (principal == null) {
-            // SLING-7268 - as pointed out in OAK-5496, we cannot successfully use
-            // PrincipalManager#getPrincipal in oak
-            // without the session that created the principal getting saved first (and a
-            // subsequent index update).
-            // Workaround by trying the UserManager#getAuthorizable API to locate the
-            // principal.
-            UserManager userManager = AccessControlUtil.getUserManager(session);
-            final Authorizable authorizable = userManager.getAuthorizable(principalId);
-            if (authorizable != null) {
-                principal = authorizable.getPrincipal();
+        if (grantedPrivilegeNames != null) {
+            for (String pn: grantedPrivilegeNames) {
+                LocalPrivilege lp = privilegeToLocalPrivilegesMap.computeIfAbsent(pn, LocalPrivilege::new);
+                lp.setAllow(true);
             }
         }
 
-        if (principal == null) {
-            throw new RepositoryException("No principal found for id: " + principalId);
+        if (deniedPrivilegeNames != null) {
+            for (String pn: deniedPrivilegeNames) {
+                LocalPrivilege lp = privilegeToLocalPrivilegesMap.computeIfAbsent(pn, LocalPrivilege::new);
+                lp.setDeny(true);
+            }
         }
-        String resourcePath = parentNode.getPath();
 
-        if ((grantedPrivilegeNames != null) || (deniedPrivilegeNames != null)) {
-            AccessControlUtil.replaceAccessControlEntry(session, resourcePath, principal, grantedPrivilegeNames, deniedPrivilegeNames, null, order, 
-            		restrictions, mvRestrictions, removedRestrictionNames);
+        Set<LocalRestriction> restrictionsSet = new HashSet<>();
+        if (restrictions != null) {
+            for (Entry<String, Value> entry: restrictions.entrySet()) {
+                LocalRestriction lr = new LocalRestriction(entry.getKey(), entry.getValue());
+                restrictionsSet.add(lr);
+            }
         }
+        if (mvRestrictions != null) {
+            for (Entry<String, Value[]> entry: mvRestrictions.entrySet()) {
+                LocalRestriction lr = new LocalRestriction(entry.getKey(), entry.getValue());
+                restrictionsSet.add(lr);
+            }
+        }
+
+        if (!restrictionsSet.isEmpty()) {
+            for (LocalPrivilege entry: privilegeToLocalPrivilegesMap.values()) {
+                if (entry.isAllow()) {
+                    entry.setAllowRestrictions(restrictionsSet);
+                }
+                if (entry.isDeny()) {
+                    entry.setDenyRestrictions(restrictionsSet);
+                }
+            }
+        }
+
+        createAce(principalId, new ArrayList<>(privilegeToLocalPrivilegesMap.values()), order);
     }
 
     @Override
