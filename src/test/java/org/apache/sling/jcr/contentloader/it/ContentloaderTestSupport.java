@@ -29,6 +29,7 @@ import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 import static org.ops4j.pax.exam.CoreOptions.streamBundle;
+import static org.ops4j.pax.exam.CoreOptions.when;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfiguration;
 import static org.ops4j.pax.tinybundles.core.TinyBundles.withBnd;
 
@@ -59,6 +60,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.options.ModifiableCompositeOption;
+import org.ops4j.pax.exam.options.extra.VMOption;
 import org.ops4j.pax.exam.util.Filter;
 import org.ops4j.pax.tinybundles.core.TinyBundle;
 import org.ops4j.pax.tinybundles.core.TinyBundles;
@@ -106,9 +108,23 @@ public abstract class ContentloaderTestSupport extends TestSupport {
     private HealthCheckExecutor hcExecutor;
     
     public ModifiableCompositeOption baseConfiguration() {
+        final String vmOpt = System.getProperty("pax.vm.options");
+        VMOption vmOption = null;
+        if (vmOpt != null && !vmOpt.isEmpty()) {
+            vmOption = new VMOption(vmOpt);
+        }
+
+        final String jacocoOpt = System.getProperty("jacoco.command");
+        VMOption jacocoCommand = null;
+        if (jacocoOpt != null && !jacocoOpt.isEmpty()) {
+            jacocoCommand = new VMOption(jacocoOpt);
+        }
+
         final Option contentloader = mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.jcr.contentloader").version(SlingOptions.versionResolver.getVersion("org.apache.sling", "org.apache.sling.jcr.contentloader"));
         return composite(
             super.baseConfiguration(),
+            when(vmOption != null).useOptions(vmOption),
+            when(jacocoCommand != null).useOptions(jacocoCommand),
             quickstart(),
             // SLING-9735 - add server user for the o.a.s.jcr.contentloader bundle
             factoryConfiguration("org.apache.sling.jcr.repoinit.RepositoryInitializer")
