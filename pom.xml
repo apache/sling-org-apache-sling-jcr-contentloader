@@ -24,7 +24,7 @@
     <parent>
         <groupId>org.apache.sling</groupId>
         <artifactId>sling-bundle-parent</artifactId>
-        <version>46</version>
+        <version>49</version>
         <relativePath />
     </parent>
 
@@ -159,6 +159,7 @@
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.jcr.contentparser</artifactId>
             <version>1.2.6</version>
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
