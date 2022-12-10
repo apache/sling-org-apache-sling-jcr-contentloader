@@ -164,6 +164,7 @@ public class JsonReader implements ContentReader {
                 try {
                     ins.close();
                 } catch (IOException ignore) {
+                    // ignore
                 }
             }
         }
@@ -239,9 +240,10 @@ public class JsonReader implements ContentReader {
             // multivalue
             final JsonArray array = (JsonArray) value;
             if (!array.isEmpty()) {
-                final String values[] = new String[array.size()];
+                final String[] values = new String[array.size()];
                 for (int i = 0; i < values.length; i++) {
-                    values[i] = unbox(array.get(i)).toString();
+                    Object u = unbox(array.get(i));
+                    values[i] = u == null ? null : u.toString();
                 }
                 final int propertyType = getType(name, unbox(array.get(0)));
                 contentCreator.createProperty(getName(name), propertyType, values);
@@ -330,7 +332,7 @@ public class JsonReader implements ContentReader {
         int c = ins.read();
         if (c == '#') {
             // character encoding following
-            StringBuffer buf = new StringBuffer();
+            StringBuilder buf = new StringBuilder();
             for (c = ins.read(); !Character.isWhitespace((char) c); c = ins.read()) {
                 buf.append((char) c);
             }

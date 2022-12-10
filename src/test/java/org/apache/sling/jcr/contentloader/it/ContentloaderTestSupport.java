@@ -19,6 +19,7 @@
 package org.apache.sling.jcr.contentloader.it;
 
 import static org.apache.felix.hc.api.FormattingResultLog.msHumanReadable;
+import static org.apache.sling.testing.paxexam.SlingOptions.awaitility;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingQuickstartOakTar;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingResourcePresence;
 import static org.junit.Assert.assertEquals;
@@ -38,6 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -56,6 +58,7 @@ import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.resource.presence.ResourcePresence;
 import org.apache.sling.testing.paxexam.SlingOptions;
 import org.apache.sling.testing.paxexam.TestSupport;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.ops4j.pax.exam.Option;
@@ -155,7 +158,8 @@ public abstract class ContentloaderTestSupport extends TestSupport {
                         "end"})
                 .asOption(),
             slingResourcePresence(),
-            junitBundles()
+            junitBundles(),
+            awaitility()
         ).remove(
             contentloader
         );
@@ -191,12 +195,11 @@ public abstract class ContentloaderTestSupport extends TestSupport {
      * @param nextIterationDelay the sleep time between the check attempts
      */
     protected void waitForContentLoaded(long timeoutMsec, long nextIterationDelay) throws Exception {
-        new Retry(timeoutMsec, nextIterationDelay) {
-            /* (non-Javadoc)
-             * @see org.apache.sling.jcr.contentloader.it.Retry#exec()
-             */
-            @Override
-            protected void exec() throws Exception {
+        Awaitility.await("waitForContentLoaded")
+            .atMost(Duration.ofMillis(timeoutMsec))
+            .pollInterval(Duration.ofMillis(nextIterationDelay))
+            .ignoreExceptions()
+            .until(() -> {
                 logger.info("Performing content-loaded health check");
                 HealthCheckSelector hcs = HealthCheckSelector.tags(TAG_TESTING_CONTENT_LOADING);
                 List<HealthCheckExecutionResult> results = hcExecutor.execute(hcs);
@@ -207,10 +210,10 @@ public abstract class ContentloaderTestSupport extends TestSupport {
                     logger.info("content-loaded health check: {}", toHealthCheckResultInfo(exR, false));
                     assertTrue(r.isOk());
                 }
-            }
-        };
+                return true;
+            });
     }
-    
+
     /**
      * Produce a human readable report of the health check results that is suitable for
      * debugging or writing to a log

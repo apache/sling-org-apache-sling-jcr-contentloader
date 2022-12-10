@@ -69,7 +69,7 @@ public class XmlReaderTest extends TestCase {
             // Expected
         }
         assertEquals("mimeType mismatch", "application/test", file.mimeType);
-        assertEquals("lastModified mismatch", XmlReader.FileDescription.DATE_FORMAT.parse("1977-06-01T07:00:00+0100"),
+        assertEquals("lastModified mismatch", XmlReader.FileDescription.createDateFormat().parse("1977-06-01T07:00:00+0100"),
                 new Date(file.lastModified));
         assertEquals("Could not read file", "This is a test file.", file.content);
 

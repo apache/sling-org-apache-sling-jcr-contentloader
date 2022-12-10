@@ -125,7 +125,7 @@ public class PathEntry extends ImportOptions {
     private static final String MAVEN_MOUNT_DIRECTIVE = "maven:mount";
 
     /** All directive names which are valid for header Sling-Initial-Content */
-    public Set<String> VALID_DIRECTIVES = new HashSet<>(Arrays.asList(
+    protected static final Set<String> VALID_DIRECTIVES = new HashSet<>(Arrays.asList(
         OVERWRITE_DIRECTIVE,
         OVERWRITE_PROPERTIES_DIRECTIVE,
         MERGE_PROPERTIES_DIRECTIVE,
@@ -254,7 +254,7 @@ public class PathEntry extends ImportOptions {
             logPrefix = "";
         }
         // check for attributes
-        if (entry.getAttributes().length > 0) {
+        if (entry.getAttributes().length > 0 && log.isWarnEnabled()) {
             log.warn("{}Attributes are not supported in header {} but this header used attributes '{}'. Maybe a directive (with key/value separator ':=') was meant instead?", logPrefix, CONTENT_HEADER, 
                     Arrays.stream(entry.getAttributes()).map(attr -> attr.getName() + "=" + attr.getValue()).collect(Collectors.joining(", ")));
         }
@@ -391,11 +391,11 @@ public class PathEntry extends ImportOptions {
     public boolean isCheckin() {
         return this.checkin;
     }
-    
+
     /* (non-Javadoc)
      * @see org.apache.sling.jcr.contentloader.ImportOptions#isAutoCheckout()
      */
-
+    @Override
     public boolean isAutoCheckout() {
         return this.autoCheckout;
     }
@@ -458,12 +458,12 @@ public class PathEntry extends ImportOptions {
         return workspace;
     }
 
-
+    @Override
     public boolean isPropertyMerge() {
         return this.propertyMerge;
     }
 
-
+    @Override
     public boolean isMerge() {
         return this.nodeMerge;
     }

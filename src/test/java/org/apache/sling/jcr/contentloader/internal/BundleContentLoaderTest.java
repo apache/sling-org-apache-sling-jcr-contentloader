@@ -158,7 +158,7 @@ public class BundleContentLoaderTest {
 
     @Test
     public void loadContentOverwriteWith2ndLevelPath() throws Exception {
-        AccessControlEntry[] expectedAces = createFolderNodeAndACL("/apps/child");
+        /*AccessControlEntry[] expectedAces =*/ createFolderNodeAndACL("/apps/child");
         BundleContentLoader contentLoader = new BundleContentLoader(bundleHelper, whiteboard, null);
         Bundle mockBundle = newBundleWithInitialContent(context, "SLING-INF2/apps;overwrite:=true;path:=/apps");
         contentLoader.registerBundle(context.resourceResolver().adaptTo(Session.class), mockBundle, false);

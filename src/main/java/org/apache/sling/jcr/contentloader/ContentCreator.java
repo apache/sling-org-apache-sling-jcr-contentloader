@@ -202,9 +202,9 @@ public interface ContentCreator {
      */
     @Deprecated
     default void createAce(String principal, String[] grantedPrivileges, String[] deniedPrivileges, String order, 
-    		Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions, Set<String> removedRestrictionNames) throws RepositoryException {
-    	throw new UnsupportedOperationException();
-	}
+            Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions, Set<String> removedRestrictionNames) throws RepositoryException {
+        throw new UnsupportedOperationException();
+    }
     
     /**
      * Creates an Access Control Entry for the current node for the specified
@@ -233,7 +233,7 @@ public interface ContentCreator {
      * @return the current parent node or null
      */
     default Node getParent() {
-    	throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException();
     }
 
 }

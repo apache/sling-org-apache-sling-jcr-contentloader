@@ -85,11 +85,11 @@ public class JcrXmlImporter {
             return (parent.hasNode(nodeName)) ? parent.getNode(nodeName) : null;
         } catch (InvalidSerializedDataException isde) {
             // the xml might not be System or Document View export, fall back to old-style XML reading
-            logger.info("importJcrXml: XML does not seem to be system or document view; cause: {}", isde);
+            logger.info("importJcrXml: XML does not seem to be system or document view", isde);
             return null;
         } catch (RepositoryException re) {
             // any other repository related issue...
-            logger.info("importJcrXml: Repository issue loading XML; cause: {}", re);
+            logger.info("importJcrXml: Repository issue loading XML", re);
             return null;
         }
     }

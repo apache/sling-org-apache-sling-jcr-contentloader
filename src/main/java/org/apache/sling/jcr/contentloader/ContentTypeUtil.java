@@ -20,6 +20,10 @@ package org.apache.sling.jcr.contentloader;
 
 public class ContentTypeUtil {
 
+    private ContentTypeUtil() {
+        // private constructor to haide the implicit public one
+    }
+
     public static final String EXT_JSON = ".json";
 
     public static final String TYPE_JSON = "application/json";

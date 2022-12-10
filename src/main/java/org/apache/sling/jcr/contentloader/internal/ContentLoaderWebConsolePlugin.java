@@ -63,12 +63,12 @@ public class ContentLoaderWebConsolePlugin extends GenericServlet {
     protected static final String RES_LOC = LABEL + "/res/ui/";
 
     @Reference
-    SlingRepository repository;
+    transient SlingRepository repository;
 
     @Reference
-    BundleHelper bundleHelper;
+    transient BundleHelper bundleHelper;
 
-    BundleContext context;
+    transient BundleContext context;
 
     @Activate()
     private void activate(BundleContext context) {

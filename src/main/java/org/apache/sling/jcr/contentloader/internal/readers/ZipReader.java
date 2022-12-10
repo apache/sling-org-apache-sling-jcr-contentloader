@@ -33,7 +33,7 @@ import org.osgi.service.component.annotations.Component;
 
 
 /**
- * The <code>ZipReader</code> TODO
+ * The <code>ZipReader</code>
  *
  * @since 2.0.4
  */
@@ -54,16 +54,16 @@ public class ZipReader implements ContentReader {
      */
     @Override
     public void parse(java.net.URL url, ContentCreator creator)
-    		throws IOException, RepositoryException {
-    	parse(url.openStream(), creator);
+            throws IOException, RepositoryException {
+        parse(url.openStream(), creator);
     }
 
-	/**
-	 * @see org.apache.sling.jcr.contentloader.ContentReader#parse(java.io.InputStream, org.apache.sling.jcr.contentloader.ContentCreator)
-	 */
-	@Override
+    /**
+     * @see org.apache.sling.jcr.contentloader.ContentReader#parse(java.io.InputStream, org.apache.sling.jcr.contentloader.ContentCreator)
+     */
+    @Override
     public void parse(InputStream ins, ContentCreator creator)
-			throws IOException, RepositoryException {
+            throws IOException, RepositoryException {
         try ( ZipInputStream zis = new ZipInputStream(ins)) {
             creator.createNode(null, NT_FOLDER, null);
             ZipEntry entry;
@@ -76,7 +76,7 @@ public class ZipReader implements ContentReader {
                         if ( pos != -1 ) {
                             creator.switchCurrentNode(name.substring(0, pos), NT_FOLDER);
                         }
-                        creator.createFileAndResourceNode(name, new CloseShieldInputStream(zis), null, entry.getTime());
+                        creator.createFileAndResourceNode(name, CloseShieldInputStream.wrap(zis), null, entry.getTime());
                         creator.finishNode();
                         creator.finishNode();
                         if ( pos != -1 ) {
@@ -89,6 +89,6 @@ public class ZipReader implements ContentReader {
             } while ( entry != null );
             creator.finishNode();
         }
-	}
+    }
 
 }

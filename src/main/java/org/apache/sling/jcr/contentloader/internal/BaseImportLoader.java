@@ -38,11 +38,11 @@ public abstract class BaseImportLoader extends JcrXmlImporter {
     protected ContentReaderWhiteboard contentReaderWhiteboard;
 
     // This constructor is meant to be used by the OSGi
-    public BaseImportLoader() {
+    protected BaseImportLoader() {
     }
 
     // This constructor is meant to be used by non-OSGi
-    public BaseImportLoader(ContentReaderWhiteboard contentReaderWhiteboard) {
+    protected BaseImportLoader(ContentReaderWhiteboard contentReaderWhiteboard) {
         this.contentReaderWhiteboard = contentReaderWhiteboard;
     }
 

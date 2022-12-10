@@ -38,6 +38,7 @@ import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.contentloader.ContentReader;
 import org.apache.sling.serviceusermapping.ServiceUserMapped;
 import org.apache.sling.settings.SlingSettingsService;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleEvent;
@@ -365,7 +366,7 @@ public class BundleContentLoaderListener implements SynchronousBundleListener, B
      * @throws RepositoryException
      */
     @Override
-    public Map<String, Object> getBundleContentInfo(final Session session, final Bundle bundle, boolean create)
+    public @Nullable Map<String, Object> getBundleContentInfo(final Session session, final Bundle bundle, boolean create)
             throws RepositoryException {
         final String nodeName = bundle.getSymbolicName();
         final Node parentNode = (Node) session.getItem(BUNDLE_CONTENT_NODE);

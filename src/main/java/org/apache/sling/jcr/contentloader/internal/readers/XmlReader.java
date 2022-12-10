@@ -51,6 +51,7 @@ import javax.xml.transform.stream.StreamSource;
 
 import org.apache.sling.jcr.contentloader.ContentCreator;
 import org.apache.sling.jcr.contentloader.ContentReader;
+import org.jetbrains.annotations.Nullable;
 import org.kxml2.io.KXmlParser;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
@@ -137,6 +138,9 @@ public class XmlReader implements ContentReader {
     private static final String ELEM_FILE_NAMESPACE = "http://www.jcp.org/jcr/nt/1.0";
     private static final String ELEM_FILE_NAME = "file";
 
+    private static final String INVALID_XML_UNEXPECTED_ELEMENT = "XML file does not seem to contain valid content xml. Unexpected %s element in : %s";
+    private static final String INVALID_XML_ELEMENT_NOT_ALLOWED = "Element is not allowed at this location: %s in %s";
+
     private KXmlParser xmlParser;
 
     @Activate
@@ -178,17 +182,13 @@ public class XmlReader implements ContentReader {
      */
     @Override
     public void parse(InputStream ins, ContentCreator creator) throws IOException, RepositoryException {
-        BufferedInputStream bufferedInput = null;
-        try {
+        try (BufferedInputStream bufferedInput = new BufferedInputStream(ins)) {
             // We need to buffer input, so that we can reset the stream if we encounter an
             // XSL stylesheet reference
-            bufferedInput = new BufferedInputStream(ins);
             URL xmlLocation = null;
             parseInternal(bufferedInput, creator, xmlLocation);
         } catch (XmlPullParserException xppe) {
             throw (IOException) new IOException(xppe.getMessage()).initCause(xppe);
-        } finally {
-            closeStream(bufferedInput);
         }
     }
 
@@ -242,7 +242,7 @@ public class XmlReader implements ContentReader {
                     currentNode = NodeDescription.create(currentNode, creator);
                     currentProperty = PropertyDescription.SHARED;
                 } else if (ELEM_NODE.equals(currentElement)) {
-                    currentNode = NodeDescription.create(currentNode, creator);
+                    NodeDescription.create(currentNode, creator);
                     currentNode = NodeDescription.SHARED;
                 } else if (ELEM_FILE_NAME.equals(currentElement)
                         && ELEM_FILE_NAMESPACE.equals(this.xmlParser.getNamespace())) {
@@ -278,35 +278,35 @@ public class XmlReader implements ContentReader {
                 contentBuffer.delete(0, contentBuffer.length());
 
                 if (ELEM_PROPERTY.equals(qName)) {
+                    if (currentProperty == null) {
+                        throw new IOException(String.format(INVALID_XML_UNEXPECTED_ELEMENT, ELEM_PROPERTY, xmlLocation));
+                    }
                     currentProperty = PropertyDescription.create(currentProperty, creator);
 
                 } else if (ELEM_NAME.equals(qName)) {
                     if (currentProperty != null) {
-                        currentProperty.name = content;
+                        currentProperty.setName(content);
                     } else if (currentNode != null) {
-                        currentNode.name = content;
+                        currentNode.setName(content);
                     }
 
                 } else if (ELEM_VALUE.equals(qName)) {
                     if (currentProperty == null) {
-                        throw new IOException("XML file does not seem to contain valid content xml. Unexpected "
-                                + ELEM_VALUE + " element in : " + xmlLocation);
+                        throw new IOException(String.format(INVALID_XML_UNEXPECTED_ELEMENT, ELEM_VALUE, xmlLocation));
                     }
                     currentProperty.addValue(content);
 
                 } else if (ELEM_VALUES.equals(qName)) {
                     if (currentProperty == null) {
-                        throw new IOException("XML file does not seem to contain valid content xml. Unexpected "
-                                + ELEM_VALUE + " element in : " + xmlLocation);
+                        throw new IOException(String.format(INVALID_XML_UNEXPECTED_ELEMENT, ELEM_VALUES, xmlLocation));
                     }
-                    currentProperty.isMultiValue = true;
+                    currentProperty.setMultiValue(true);
 
                 } else if (ELEM_TYPE.equals(qName)) {
                     if (currentProperty == null) {
-                        throw new IOException("XML file does not seem to contain valid content xml. Unexpected "
-                                + ELEM_VALUE + " element in : " + xmlLocation);
+                        throw new IOException(String.format(INVALID_XML_UNEXPECTED_ELEMENT, ELEM_TYPE, xmlLocation));
                     }
-                    currentProperty.type = content;
+                    currentProperty.setType(content);
 
                 } else if (ELEM_NODE.equals(qName)) {
                     currentNode = NodeDescription.create(currentNode, creator);
@@ -314,15 +314,13 @@ public class XmlReader implements ContentReader {
 
                 } else if (ELEM_PRIMARY_NODE_TYPE.equals(qName)) {
                     if (currentNode == null) {
-                        throw new IOException(
-                                "Element is not allowed at this location: " + qName + " in " + xmlLocation);
+                        throw new IOException(String.format(INVALID_XML_ELEMENT_NOT_ALLOWED, qName, xmlLocation));
                     }
-                    currentNode.primaryNodeType = content;
+                    currentNode.setPrimaryNodeType(content);
 
                 } else if (ELEM_MIXIN_NODE_TYPE.equals(qName)) {
                     if (currentNode == null) {
-                        throw new IOException(
-                                "Element is not allowed at this location: " + qName + " in " + xmlLocation);
+                        throw new IOException(String.format(INVALID_XML_ELEMENT_NOT_ALLOWED, qName, xmlLocation));
                     }
                     currentNode.addMixinType(content);
                 }
@@ -374,64 +372,76 @@ public class XmlReader implements ContentReader {
         public void startTransform() throws IOException {
             final URL xslResource = new URL(xmlLocation, this.xslHref);
 
-            /*
-             * if (xslResource == null) { throw new IOException("Could not find " +
-             * xslHref); }
-             */
-
-            transformerThread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Source xml = new StreamSource(inputXml);
-                        Source xsl = new StreamSource(xslResource.toExternalForm());
-                        final StreamResult streamResult;
-                        final Templates templates = TransformerFactory.newInstance().newTemplates(xsl);
-                        streamResult = new StreamResult(pipedOut);
-                        templates.newTransformer().transform(xml, streamResult);
-                    } catch (TransformerConfigurationException e) {
-                        throw new RuntimeException("Error initializing XSL transformer", e);
-                    } catch (TransformerException e) {
-                        throw new RuntimeException("Error transforming", e);
-                    } finally {
-                        closeStream(pipedOut);
-                    }
+            transformerThread = new Thread(() -> {
+                try {
+                    Source xml = new StreamSource(inputXml);
+                    Source xsl = new StreamSource(xslResource.toExternalForm());
+                    final StreamResult streamResult;
+                    final Templates templates = TransformerFactory.newInstance().newTemplates(xsl);
+                    streamResult = new StreamResult(pipedOut);
+                    templates.newTransformer().transform(xml, streamResult);
+                } catch (TransformerConfigurationException e) {
+                    throw new RuntimeException("Error initializing XSL transformer", e);
+                } catch (TransformerException e) {
+                    throw new RuntimeException("Error transforming", e);
+                } finally {
+                    closeStream(pipedOut);
                 }
             }, "XslTransformerThread");
             transformerThread.start();
         }
 
-    }
-
-    /**
-     * Utility function to close a stream if it is still open.
-     * 
-     * @param closeable
-     *            Stream to close
-     */
-    private static void closeStream(Closeable closeable) {
-        if (closeable != null) {
-            try {
-                closeable.close();
-            } catch (IOException ignore) {
+        /**
+         * Utility function to close a stream if it is still open.
+         * 
+         * @param closeable
+         *            Stream to close
+         */
+        private static void closeStream(Closeable closeable) {
+            if (closeable != null) {
+                try {
+                    closeable.close();
+                } catch (IOException ignore) {
+                    // ignore
+                }
             }
         }
     }
 
     protected static final class NodeDescription {
 
-        public static NodeDescription SHARED = new NodeDescription();
+        public static final NodeDescription SHARED = new NodeDescription();
 
-        public String name;
-        public String primaryNodeType;
-        public List<String> mixinTypes;
+        private String name;
+        private String primaryNodeType;
+        private List<String> mixinTypes;
 
         public static NodeDescription create(NodeDescription desc, ContentCreator creator) throws RepositoryException {
             if (desc != null) {
-                creator.createNode(desc.name, desc.primaryNodeType, desc.getMixinTypes());
+                creator.createNode(desc.getName(), desc.getPrimaryNodeType(), desc.getMixinTypes());
                 desc.clear();
             }
             return null;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getPrimaryNodeType() {
+            return primaryNodeType;
+        }
+
+        public void setPrimaryNodeType(String primaryNodeType) {
+            this.primaryNodeType = primaryNodeType;
+        }
+
+        public void setMixinTypes(List<String> mixinTypes) {
+            this.mixinTypes = mixinTypes;
         }
 
         public void addMixinType(String v) {
@@ -441,8 +451,8 @@ public class XmlReader implements ContentReader {
             this.mixinTypes.add(v);
         }
 
-        private String[] getMixinTypes() {
-            if (this.mixinTypes == null || this.mixinTypes.size() == 0) {
+        private @Nullable String[] getMixinTypes() {
+            if (this.mixinTypes == null || this.mixinTypes.isEmpty()) {
                 return null;
             }
             return mixinTypes.toArray(new String[this.mixinTypes.size()]);
@@ -459,28 +469,61 @@ public class XmlReader implements ContentReader {
 
     protected static final class PropertyDescription {
 
-        public static PropertyDescription SHARED = new PropertyDescription();
+        public static final PropertyDescription SHARED = new PropertyDescription();
 
         public static PropertyDescription create(PropertyDescription desc, ContentCreator creator)
                 throws RepositoryException {
-            int type = (desc.type == null ? PropertyType.STRING : PropertyType.valueFromName(desc.type));
-            if (desc.isMultiValue) {
-                creator.createProperty(desc.name, type, desc.getPropertyValues());
+            int type = (desc.getType() == null ? PropertyType.STRING : PropertyType.valueFromName(desc.getType()));
+            if (desc.isMultiValue()) {
+                creator.createProperty(desc.getName(), type, desc.getPropertyValues());
             } else {
                 String value = null;
-                if (desc.values != null && desc.values.size() == 1) {
-                    value = desc.values.get(0);
+                List<String> values = desc.getValues();
+                if (values != null && values.size() == 1) {
+                    value = values.get(0);
                 }
-                creator.createProperty(desc.name, type, value);
+                creator.createProperty(desc.getName(), type, value);
             }
             desc.clear();
             return null;
         }
 
-        public String name;
-        public String type;
-        public List<String> values;
-        public boolean isMultiValue;
+        private String name;
+        private String type;
+        private List<String> values;
+        private boolean isMultiValue;
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public boolean isMultiValue() {
+            return isMultiValue;
+        }
+
+        public void setMultiValue(boolean isMultiValue) {
+            this.isMultiValue = isMultiValue;
+        }
+
+        public List<String> getValues() {
+            return values;
+        }
+
+        public void setValues(List<String> values) {
+            this.values = values;
+        }
 
         public void addValue(String v) {
             if (this.values == null) {
@@ -489,20 +532,20 @@ public class XmlReader implements ContentReader {
             this.values.add(v);
         }
 
-        private String[] getPropertyValues() {
-            if (this.values == null || this.values.size() == 0) {
+        private @Nullable String[] getPropertyValues() {
+            if (this.values == null || this.values.isEmpty()) {
                 return null;
             }
             return values.toArray(new String[this.values.size()]);
         }
 
         private void clear() {
-            this.name = null;
-            this.type = null;
+            this.setName(null);
+            this.setType(null);
             if (this.values != null) {
                 this.values.clear();
             }
-            this.isMultiValue = false;
+            this.setMultiValue(false);
         }
     }
 
@@ -567,14 +610,23 @@ public class XmlReader implements ContentReader {
         private URL baseLocation;
         private Long lastModified;
 
-        public static FileDescription SHARED = new FileDescription();
+        public static final FileDescription SHARED = new FileDescription();
         private static final String SRC_ATTRIBUTE = "src";
         private static final String MIME_TYPE_ATTRIBUTE = "mimeType";
         private static final String LAST_MODIFIED_ATTRIBUTE = "lastModified";
-        public static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+        private DateFormat dateFormat = null;
 
-        static {
-            DATE_FORMAT.setLenient(true);
+        static DateFormat createDateFormat() {
+            DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+            dateFormat.setLenient(true);
+            return dateFormat;
+        }
+
+        private DateFormat getOrCreateDateFormat() {
+            if (dateFormat == null) {
+                dateFormat = createDateFormat();
+            }
+            return dateFormat;
         }
 
         public void setValues(AttributeMap attributes) throws MalformedURLException, ParseException {
@@ -586,7 +638,7 @@ public class XmlReader implements ContentReader {
                 } else if (name.equals(MIME_TYPE_ATTRIBUTE)) {
                     mimeType = value;
                 } else if (name.equals(LAST_MODIFIED_ATTRIBUTE)) {
-                    lastModified = DATE_FORMAT.parse(value).getTime();
+                    lastModified = getOrCreateDateFormat().parse(value).getTime();
                 }
             }
         }

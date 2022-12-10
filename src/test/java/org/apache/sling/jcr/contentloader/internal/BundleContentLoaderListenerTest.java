@@ -23,11 +23,11 @@ import static org.apache.sling.jcr.contentloader.internal.BundleContentLoaderLis
 import static org.apache.sling.jcr.contentloader.internal.BundleContentLoaderListener.PROPERTY_CONTENT_LOADED_AT;
 import static org.apache.sling.jcr.contentloader.internal.BundleContentLoaderListener.PROPERTY_UNINSTALL_PATHS;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Calendar;
@@ -51,7 +51,6 @@ import org.apache.sling.testing.mock.sling.junit.SlingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleEvent;
 
@@ -61,9 +60,6 @@ public class BundleContentLoaderListenerTest {
 
     @Rule
     public final SlingContext context = new SlingContext(ResourceResolverType.JCR_OAK);
-
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
 
     private BundleContentLoaderListener underTest;
     private BundleContentLoader contentLoader;

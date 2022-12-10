@@ -269,15 +269,21 @@ public class BundleContentLoader extends BaseImportLoader {
             while (pathIter.hasNext()) {
                 final PathEntry pathEntry = pathIter.next();
 
+                boolean skip = false;
                 if (!pathFilter.test(pathEntry.getTarget())) {
                     log.debug("Path {} excluded by configuration", pathEntry.getPath());
-                    continue;
+                    skip = true;
                 }
 
                 if (pathEntry.isOverwrite() && (pathEntry.getTarget() == null || "/".equals(pathEntry.getTarget()))) {
                     log.error("Path {} tries to overwrite on the repository root level which is not allowed, only use overwrite with a dedicated path directive having any value but '/'", pathEntry.getPath());
+                    skip = true;
+                }
+
+                if (skip) {
                     continue;
                 }
+
                 if (!contentAlreadyLoaded || pathEntry.isOverwrite()) {
                     String workspace = pathEntry.getWorkspace();
                     final Session targetSession;
@@ -643,7 +649,7 @@ public class BundleContentLoader extends BaseImportLoader {
                 return URLDecoder.decode(name, "UTF-8");
             } catch (UnsupportedEncodingException uee) {
                 // actually unexpected because UTF-8 is required by the spec
-                log.error("Cannot decode " + name + " because the platform has no support for UTF-8, using undecoded");
+                log.error("Cannot decode {} because the platform has no support for UTF-8, using undecoded", name);
             } catch (Exception e) {
                 // IllegalArgumentException or failure to decode
                 log.error("Cannot decode " + name + ", using undecoded", e);
@@ -663,7 +669,7 @@ public class BundleContentLoader extends BaseImportLoader {
 
         if (!path.startsWith("/")) {
             // make relative path absolute
-            path = "/" + path;
+            path = "/" + path; // NOSONAR
         }
 
         if (!session.itemExists(path)) {
@@ -760,9 +766,25 @@ public class BundleContentLoader extends BaseImportLoader {
 
     protected static final class Descriptor {
 
-        public URL url;
+        private URL url;
 
         private ContentReader contentReader;
+
+        public URL getUrl() {
+            return url;
+        }
+
+        public void setUrl(URL url) {
+            this.url = url;
+        }
+
+        public ContentReader getContentReader() {
+            return contentReader;
+        }
+
+        public void setContentReader(ContentReader contentReader) {
+            this.contentReader = contentReader;
+        }
 
     }
 
@@ -784,8 +806,8 @@ public class BundleContentLoader extends BaseImportLoader {
                 URL url = bundle.getEntry(filePath.toString());
                 if (url != null) {
                     final Descriptor descriptor = new Descriptor();
-                    descriptor.url = url;
-                    descriptor.contentReader = entry.getValue();
+                    descriptor.setUrl(url);
+                    descriptor.setContentReader(entry.getValue());
                     return descriptor;
                 }
             }
@@ -808,8 +830,8 @@ public class BundleContentLoader extends BaseImportLoader {
 
         try {
             contentCreator.prepareParsing(parent, null);
-            descriptor.contentReader.parse(descriptor.url, contentCreator);
-            return descriptor.url;
+            descriptor.getContentReader().parse(descriptor.getUrl(), contentCreator);
+            return descriptor.getUrl();
         } catch (RepositoryException re) {
             throw re;
         } catch (Exception t) {

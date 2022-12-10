@@ -138,7 +138,7 @@ public class DefaultContentImporter extends BaseImportLoader implements ContentH
 
     private void importJcrXml(final Node parent, final String name, final InputStream contentStream, final ImportOptions importOptions, final ContentImportListener importListener) throws IOException, RepositoryException {
         logger.debug("import JCR XML: '{}'", name);
-        boolean replace = (importOptions == null) ? false : importOptions.isOverwrite();
+        boolean replace = importOptions != null && importOptions.isOverwrite();
         final Node node = importJcrXml(parent, name, contentStream, replace);
         if (node != null && importListener != null) {
             importListener.onCreate(node.getPath());

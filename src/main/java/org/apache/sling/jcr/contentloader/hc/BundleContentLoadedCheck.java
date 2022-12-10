@@ -63,10 +63,10 @@ public class BundleContentLoadedCheck implements HealthCheck {
     @ObjectClassDefinition(name = HC_LABEL, description = "Checks the configured path(s) against the given thresholds")
     public @interface Config {
         @AttributeDefinition(name = "Name", description = "Name of this health check")
-        String hc_name() default HC_NAME;
+        String hc_name() default HC_NAME; // NOSONAR
 
         @AttributeDefinition(name = "Tags", description = "List of tags for this health check, used to select subsets of health checks for execution e.g. by a composite health check.")
-        String[] hc_tags() default {};
+        String[] hc_tags() default {}; // NOSONAR
 
         @AttributeDefinition(name = "Includes RegEx", description = "RegEx to select all relevant bundles for this check. The RegEx is matched against the symbolic name of the bundle.")
         String includesRegex() default ".*";
@@ -76,9 +76,9 @@ public class BundleContentLoadedCheck implements HealthCheck {
 
         @AttributeDefinition(name = "CRITICAL for not loaded bundles", description = "By default not loaded bundles produce warnings, if this is set to true not loaded bundles produce a CRITICAL result")
         boolean useCriticalForNotLoaded() default false;
-        
+
         @AttributeDefinition
-        String webconsole_configurationFactory_nameHint() default "Bundle content loaded includes: {includesRegex} excludes: {excludesRegex}";
+        String webconsole_configurationFactory_nameHint() default "Bundle content loaded includes: {includesRegex} excludes: {excludesRegex}"; // NOSONAR
     }
 
     private BundleContext bundleContext;
@@ -129,14 +129,19 @@ public class BundleContentLoadedCheck implements HealthCheck {
            
             for (Bundle bundle : bundles) {
                 String bundleSymbolicName = bundle.getSymbolicName();
+                boolean skip = false;
                 if (!includesRegex.matcher(bundleSymbolicName).matches()) {
                     LOG.debug("Bundle {} not matched by {}", bundleSymbolicName, includesRegex);
-                    continue;
+                    skip = true;
                 }
 
                 if (excludesRegex!=null && excludesRegex.matcher(bundleSymbolicName).matches()) {
                     LOG.debug("Bundle {} excluded {}", bundleSymbolicName, excludesRegex);
                     countExcluded ++;
+                    skip = true;
+                }
+
+                if (skip) {
                     continue;
                 }
 

@@ -72,7 +72,6 @@ import org.jmock.integration.junit4.JUnit4Mockery;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import junitx.util.PrivateAccessor;
 
@@ -88,9 +87,6 @@ public class DefaultContentCreatorTest {
 
     @Rule
     public final SlingContext context = new SlingContext(ResourceResolverType.JCR_OAK);
-
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
 
     @Before
     public void setup() throws Exception {
@@ -286,9 +282,11 @@ public class DefaultContentCreatorTest {
         //Making parentNodeStack.size() == 2
         contentCreator.createNode(uniqueId(), null, null);
 
-        thrown.expect(RepositoryException.class);
-        contentCreator.createNode(null, null, null);
+        assertThrows(RepositoryException.class, () -> {
+            contentCreator.createNode(null, null, null);
+        });
     }
+
 
     @Test
     public void createNodeWithoutProvidedNames() throws RepositoryException, NoSuchFieldException {

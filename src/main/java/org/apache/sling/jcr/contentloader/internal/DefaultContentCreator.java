@@ -19,7 +19,7 @@
 package org.apache.sling.jcr.contentloader.internal;
 
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
@@ -329,7 +329,7 @@ public class DefaultContentCreator implements ContentCreator {
 
         if (propertyType == PropertyType.REFERENCE) {
             // need to resolve the reference
-            String propPath = node.getPath() + "/" + name;
+            String propPath = node.getPath() + "/" + name; // NOSONAR
             String uuid = getUUID(node.getSession(), propPath, getAbsPath(node, value));
             if (uuid != null) {
                 checkoutIfNecessary(node);
@@ -377,7 +377,7 @@ public class DefaultContentCreator implements ContentCreator {
             return;
         }
         if (propertyType == PropertyType.REFERENCE) {
-            String propPath = node.getPath() + "/" + name;
+            String propPath = node.getPath() + "/" + name; // NOSONAR
             boolean hasAll = true;
             String[] uuids = new String[values.length];
             String[] uuidOrPaths = new String[values.length];
@@ -841,11 +841,11 @@ public class DefaultContentCreator implements ContentCreator {
      */
     protected String hashPath(String item) throws RepositoryException {
         try {
-            final String hash = digest("sha1", (INSTANCE_SEED + item).getBytes("UTF-8"));
+            final String hash = digest("sha1", (INSTANCE_SEED + item).getBytes(StandardCharsets.UTF_8));
             return IntStream.range(0, STORAGE_LEVELS)
                     .mapToObj(i -> hash.substring(i * 2, (i * 2) + 2))
                     .collect(Collectors.joining("/", "", "/"));
-        } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
+        } catch (NoSuchAlgorithmException e) {
             throw new RepositoryException("Unable to hash the path.", e);
         }
     }
