@@ -42,14 +42,14 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonException;
-import javax.json.JsonNumber;
-import javax.json.JsonObject;
-import javax.json.JsonString;
-import javax.json.JsonValue;
-import javax.json.JsonValue.ValueType;
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonException;
+import jakarta.json.JsonNumber;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
+import jakarta.json.JsonValue.ValueType;
 
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositeRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
@@ -177,7 +177,7 @@ public class JsonReader implements ContentReader {
         }
         Map<String, Object> config = new HashMap<>();
         config.put("org.apache.johnzon.supports-comments", true);
-        try (javax.json.JsonReader reader = Json.createReaderFactory(config).createReader(new StringReader(tickToDoubleQuote(jsonString)))) {
+        try (jakarta.json.JsonReader reader = Json.createReaderFactory(config).createReader(new StringReader(tickToDoubleQuote(jsonString)))) {
             JsonObject json = reader.readObject();
             this.createNode(null, json, contentCreator);
             contentCreator.finish();

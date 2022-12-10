@@ -125,6 +125,7 @@ public abstract class ContentloaderTestSupport extends TestSupport {
             super.baseConfiguration(),
             when(vmOption != null).useOptions(vmOption),
             when(jacocoCommand != null).useOptions(jacocoCommand),
+            mavenBundle().groupId("org.glassfish").artifactId("jakarta.json").version("2.0.1"),
             quickstart(),
             // SLING-9735 - add server user for the o.a.s.jcr.contentloader bundle
             factoryConfiguration("org.apache.sling.jcr.repoinit.RepositoryInitializer")
