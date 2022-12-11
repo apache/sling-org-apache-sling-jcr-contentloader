@@ -18,23 +18,13 @@
  */
 package org.apache.sling.jcr.contentloader.internal.readers;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-
-import org.apache.sling.jcr.contentloader.ContentCreator;
 
 import junit.framework.TestCase;
 
@@ -104,95 +94,5 @@ public class XmlReaderTest extends TestCase {
         reader = new XmlReader();
         reader.activate();
         creator = new MockContentCreator();
-    }
-
-    @SuppressWarnings("serial")
-    private static class MockContentCreator extends ArrayList<String> implements ContentCreator {
-
-        public static class FileDescription {
-            public InputStream data;
-            public String mimeType;
-            public long lastModified;
-            public String content;
-
-            public FileDescription(InputStream data, String mimeType, long lastModified) throws IOException {
-                this.data = data;
-                this.mimeType = mimeType;
-                this.lastModified = lastModified;
-                BufferedReader reader = new BufferedReader(new InputStreamReader(data));
-                this.content = reader.readLine();
-                reader.close();
-            }
-        }
-
-        public List<FileDescription> filesCreated = new ArrayList<FileDescription>();
-
-        public MockContentCreator() {
-        }
-
-        public void createNode(String name, String primaryNodeType, String[] mixinNodeTypes)
-                throws RepositoryException {
-            this.add(name);
-        }
-
-        public void finishNode() throws RepositoryException {
-        }
-
-        public void createProperty(String name, int propertyType, String value) throws RepositoryException {
-        }
-
-        public void createProperty(String name, int propertyType, String[] values) throws RepositoryException {
-        }
-
-        public void createProperty(String name, Object value) throws RepositoryException {
-        }
-
-        public void createProperty(String name, Object[] values) throws RepositoryException {
-        }
-
-        public void createFileAndResourceNode(String name, InputStream data, String mimeType, long lastModified)
-                throws RepositoryException {
-            try {
-                this.filesCreated.add(new FileDescription(data, mimeType, lastModified));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public boolean switchCurrentNode(String subPath, String newNodeType) throws RepositoryException {
-            return true;
-        }
-
-        public void createAce(String principal, String[] grantedPrivileges, String[] deniedPrivileges, String order)
-                throws RepositoryException {
-        }
-
-        /*
-         * (non-Javadoc)
-         * 
-         * @see
-         * org.apache.sling.jcr.contentloader.ContentCreator#createAce(java.lang.String,
-         * java.lang.String[], java.lang.String[], java.lang.String, java.util.Map,
-         * java.util.Map, java.util.Set)
-         */
-        @Override
-        public void createAce(String principal, String[] grantedPrivileges, String[] deniedPrivileges, String order,
-                Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions,
-                Set<String> removedRestrictionNames) throws RepositoryException {
-        }
-
-        public void createGroup(String name, String[] members, Map<String, Object> extraProperties)
-                throws RepositoryException {
-        }
-
-        public void createUser(String name, String password, Map<String, Object> extraProperties)
-                throws RepositoryException {
-        }
-
-        @Override
-        public void finish() throws RepositoryException {
-            
-        }
-
     }
 }
