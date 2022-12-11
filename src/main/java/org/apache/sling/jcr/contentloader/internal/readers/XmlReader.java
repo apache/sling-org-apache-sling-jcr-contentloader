@@ -440,10 +440,6 @@ public class XmlReader implements ContentReader {
             this.primaryNodeType = primaryNodeType;
         }
 
-        public void setMixinTypes(List<String> mixinTypes) {
-            this.mixinTypes = mixinTypes;
-        }
-
         public void addMixinType(String v) {
             if (this.mixinTypes == null) {
                 this.mixinTypes = new ArrayList<>();
