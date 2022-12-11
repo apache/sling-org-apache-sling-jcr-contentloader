@@ -23,9 +23,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -33,7 +35,7 @@ import javax.jcr.Value;
 import org.apache.sling.jcr.contentloader.ContentCreator;
 
 @SuppressWarnings("serial") 
-class MockContentCreator extends ArrayList<String> implements ContentCreator {
+class MockContentCreator extends Stack<Map<String, Object>> implements ContentCreator {
 
     public static class FileDescription {
         public InputStream data;
@@ -58,22 +60,37 @@ class MockContentCreator extends ArrayList<String> implements ContentCreator {
 
     public void createNode(String name, String primaryNodeType, String[] mixinNodeTypes)
             throws RepositoryException {
-        this.add(name);
+        Map<String, Object> map = new HashMap<>();
+        map.put("name", name);
+        map.put("primaryNodeType", primaryNodeType);
+        map.put("mixinNodeTypes", mixinNodeTypes);
+        this.push(map);
     }
 
     public void finishNode() throws RepositoryException {
     }
 
+    protected void recordProperty(String name, Object value) {
+        Map<String, Object> map = peek();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> propsMap = (Map<String, Object>)map.computeIfAbsent("properties", key -> new HashMap<>());
+        propsMap.put(name, value);
+    }
+
     public void createProperty(String name, int propertyType, String value) throws RepositoryException {
+        recordProperty(name, value);
     }
 
     public void createProperty(String name, int propertyType, String[] values) throws RepositoryException {
+        recordProperty(name, values);
     }
 
     public void createProperty(String name, Object value) throws RepositoryException {
+        recordProperty(name, value);
     }
 
     public void createProperty(String name, Object[] values) throws RepositoryException {
+        recordProperty(name, values);
     }
 
     public void createFileAndResourceNode(String name, InputStream data, String mimeType, long lastModified)

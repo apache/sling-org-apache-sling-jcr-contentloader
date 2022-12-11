@@ -30,6 +30,20 @@
             <value>propValue</value>
             <type>String</type>
         </property>
+        <property>
+            <name>multiPropName</name>
+            <values>
+                <value>propValue1</value>
+                <value>propValue2</value>
+            </values>
+            <type>String</type>
+        </property>
+        <property>
+            <name>multiEmptyPropName</name>
+            <values>
+            </values>
+            <type>String</type>
+        </property>
         <!-- more properties -->
     </properties>
     <nodes>

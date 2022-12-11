@@ -27,12 +27,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.io.input.CloseShieldInputStream;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.sling.jcr.contentloader.ContentCreator;
 import org.apache.sling.jcr.contentloader.ContentReader;
 import org.osgi.framework.Constants;
@@ -80,8 +85,6 @@ public class ZipReader implements ContentReader {
 
     private static final String NT_FOLDER = "nt:folder";
 
-    private Logger logger = LoggerFactory.getLogger(getClass());
-
     private long thresholdEntries;
     private long thresholdSize;
     private double thresholdRatio;
@@ -99,7 +102,35 @@ public class ZipReader implements ContentReader {
     @Override
     public void parse(java.net.URL url, ContentCreator creator)
             throws IOException, RepositoryException {
-        parse(url.openStream(), creator);
+        try (InputStream is = url.openStream()) {
+            parse(is, creator);
+        }
+    }
+
+    static File createTempFile() throws IOException {
+        File tmpFile;
+        if (SystemUtils.IS_OS_UNIX) {
+            FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
+            tmpFile = Files.createTempFile("zipentry", ".tmp", attr).toFile();
+        } else {
+            tmpFile = Files.createTempFile("zipentry", ".tmp").toFile();
+            if (!tmpFile.setReadable(true, true))
+                throw new IOException("Failed to set the temp file as readable");
+            if (!tmpFile.setWritable(true, true))
+                throw new IOException("Failed to set the temp file as writable");
+        }
+        return tmpFile; 
+    }
+
+    static void removeTempFile(File tempFile) {
+        if (tempFile != null) {
+            try {
+                Files.delete(tempFile.toPath());
+            } catch (IOException ioe) {
+                Logger logger = LoggerFactory.getLogger(ZipReader.class);
+                logger.warn("Failed to remove the temp file", ioe);
+            }
+        }
     }
 
     /**
@@ -114,7 +145,7 @@ public class ZipReader implements ContentReader {
             ZipEntry entry;
             int totalSizeArchive = 0;
             int totalEntryArchive = 0;
-            tempFile = Files.createTempFile("zip-entry", null).toFile();
+            tempFile = createTempFile();
             do {
                 entry = zis.getNextEntry();
                 if ( entry != null ) {
@@ -146,13 +177,7 @@ public class ZipReader implements ContentReader {
             } while ( entry != null );
             creator.finishNode();
         } finally {
-            if (tempFile != null) {
-                try {
-                    Files.delete(tempFile.toPath());
-                } catch (IOException ioe) {
-                    logger.warn("Failed to remove the temp file", ioe);
-                }
-            }
+            removeTempFile(tempFile);
         }
     }
 

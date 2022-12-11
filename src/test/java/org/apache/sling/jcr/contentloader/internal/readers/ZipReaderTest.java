@@ -23,6 +23,8 @@ import static org.junit.Assert.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.util.Random;
@@ -73,6 +75,15 @@ public class ZipReaderTest {
     protected byte[] generateZip(ZipPopulate populateFn) throws IOException {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream();
                 ZipOutputStream zipOut = new ZipOutputStream(out)) {
+            ZipEntry dirEntry = new ZipEntry("folder/");
+            zipOut.putNextEntry(dirEntry);
+            zipOut.closeEntry();
+
+            ZipEntry fileEntry = new ZipEntry("folder/entry");
+            zipOut.putNextEntry(fileEntry);
+            zipOut.write("Hello subfolder".getBytes());
+            zipOut.closeEntry();
+
             populateFn.populate(zipOut);
             return out.toByteArray();
         }
@@ -104,8 +115,28 @@ public class ZipReaderTest {
         try (ByteArrayInputStream in = new ByteArrayInputStream(zipBytes)) {
             reader.parse(in, creator);
         }
-        assertEquals(1, creator.filesCreated.size());
-        assertEquals("Hello", creator.filesCreated.get(0).content);
+        assertEquals(2, creator.filesCreated.size());
+        assertEquals("Hello subfolder", creator.filesCreated.get(0).content);
+        assertEquals("Hello", creator.filesCreated.get(1).content);
+    }
+
+    @Test
+    public void testZipReaderFromUrlNoViolations() throws Exception {
+        // generate a zip
+        byte[] zipBytes = generateZip(zipOut -> {
+            ZipEntry entry = new ZipEntry("entry");
+            zipOut.putNextEntry(entry);
+            zipOut.write("Hello From File".getBytes());
+            zipOut.closeEntry();
+        });
+        File tmpFile = ZipReader.createTempFile();
+        try (FileOutputStream outStream = new FileOutputStream(tmpFile)) {
+            outStream.write(zipBytes);
+        }
+        reader.parse(tmpFile.toURI().toURL(), creator);
+        assertEquals(2, creator.filesCreated.size());
+        assertEquals("Hello subfolder", creator.filesCreated.get(0).content);
+        assertEquals("Hello From File", creator.filesCreated.get(1).content);
     }
 
     @Test

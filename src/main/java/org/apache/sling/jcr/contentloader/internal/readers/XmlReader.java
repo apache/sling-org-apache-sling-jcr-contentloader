@@ -517,10 +517,6 @@ public class XmlReader implements ContentReader {
             return values;
         }
 
-        public void setValues(List<String> values) {
-            this.values = values;
-        }
-
         public void addValue(String v) {
             if (this.values == null) {
                 this.values = new ArrayList<>();

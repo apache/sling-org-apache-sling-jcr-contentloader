@@ -18,11 +18,14 @@
  */
 package org.apache.sling.jcr.contentloader.internal.readers;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Date;
+import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
@@ -62,7 +65,28 @@ public class XmlReaderTest extends TestCase {
         assertEquals("lastModified mismatch", XmlReader.FileDescription.createDateFormat().parse("1977-06-01T07:00:00+0100"),
                 new Date(file.lastModified));
         assertEquals("Could not read file", "This is a test file.", file.content);
+    }
 
+    /**
+     * Test the properties and types were processed
+     */
+    public void testCreateTypesAndProperties() throws Exception {
+        File input = new File("src/test/resources/reader/filesample.xml");
+        final URL testdata = input.toURI().toURL();
+        reader.parse(testdata, creator);
+
+        assertEquals(1, creator.size());
+        Map<String, Object> map = creator.get(0);
+        assertEquals("nodeName", map.get("name"));
+        assertEquals("type", map.get("primaryNodeType"));
+        assertArrayEquals(new String[] {"mixtype1", "mixtype2"}, (String[])map.get("mixinNodeTypes"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> propsMap = (Map<String, Object>)map.get("properties");
+        assertNotNull(propsMap);
+        assertEquals("propValue", propsMap.get("propName"));
+        assertArrayEquals(new String[] {"propValue1", "propValue2"}, (String[])propsMap.get("multiPropName"));
+        assertNull(propsMap.get("multiPropName2"));
     }
 
     public void testCreateFileWithNullLocation() throws Exception {
