@@ -107,13 +107,21 @@ public class ZipReader implements ContentReader {
         }
     }
 
+    /**
+     * NOTE: made this a method to ease testing
+     * @return true if this is a unix environment, false otherwise
+     */
+    static boolean isOsUnix() {
+        return SystemUtils.IS_OS_UNIX;
+    }
+
     static File createTempFile() throws IOException {
         File tmpFile;
-        if (SystemUtils.IS_OS_UNIX) {
+        if (isOsUnix()) {
             FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
             tmpFile = Files.createTempFile("zipentry", ".tmp", attr).toFile();
         } else {
-            tmpFile = Files.createTempFile("zipentry", ".tmp").toFile();
+            tmpFile = Files.createTempFile("zipentry", ".tmp").toFile(); // NOSONAR
             if (!tmpFile.setReadable(true, true))
                 throw new IOException("Failed to set the temp file as readable");
             if (!tmpFile.setWritable(true, true))

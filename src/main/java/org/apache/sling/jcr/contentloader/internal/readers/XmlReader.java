@@ -278,33 +278,37 @@ public class XmlReader implements ContentReader {
                 contentBuffer.delete(0, contentBuffer.length());
 
                 if (ELEM_PROPERTY.equals(qName)) {
-                    if (currentProperty == null) {
-                        throw new IOException(String.format(INVALID_XML_UNEXPECTED_ELEMENT, ELEM_PROPERTY, xmlLocation));
+                    if (currentProperty != null) {
+                        if (currentProperty.getName() == null) {
+                            throw new IOException(String.format("XML file does not seem to contain valid content xml. Expected %s element for property in : %s", ELEM_NAME, xmlLocation));
+                        }
+                        currentProperty = PropertyDescription.create(currentProperty, creator);
                     }
-                    currentProperty = PropertyDescription.create(currentProperty, creator);
 
                 } else if (ELEM_NAME.equals(qName)) {
                     if (currentProperty != null) {
                         currentProperty.setName(content);
                     } else if (currentNode != null) {
                         currentNode.setName(content);
+                    } else {
+                        throw new IOException(String.format(INVALID_XML_UNEXPECTED_ELEMENT, qName, xmlLocation));
                     }
 
                 } else if (ELEM_VALUE.equals(qName)) {
                     if (currentProperty == null) {
-                        throw new IOException(String.format(INVALID_XML_UNEXPECTED_ELEMENT, ELEM_VALUE, xmlLocation));
+                        throw new IOException(String.format(INVALID_XML_UNEXPECTED_ELEMENT, qName, xmlLocation));
                     }
                     currentProperty.addValue(content);
 
                 } else if (ELEM_VALUES.equals(qName)) {
                     if (currentProperty == null) {
-                        throw new IOException(String.format(INVALID_XML_UNEXPECTED_ELEMENT, ELEM_VALUES, xmlLocation));
+                        throw new IOException(String.format(INVALID_XML_UNEXPECTED_ELEMENT, qName, xmlLocation));
                     }
                     currentProperty.setMultiValue(true);
 
                 } else if (ELEM_TYPE.equals(qName)) {
                     if (currentProperty == null) {
-                        throw new IOException(String.format(INVALID_XML_UNEXPECTED_ELEMENT, ELEM_TYPE, xmlLocation));
+                        throw new IOException(String.format(INVALID_XML_UNEXPECTED_ELEMENT, qName, xmlLocation));
                     }
                     currentProperty.setType(content);
 

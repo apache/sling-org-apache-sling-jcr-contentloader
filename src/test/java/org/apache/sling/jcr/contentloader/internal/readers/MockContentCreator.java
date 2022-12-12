@@ -71,10 +71,12 @@ class MockContentCreator extends Stack<Map<String, Object>> implements ContentCr
     }
 
     protected void recordProperty(String name, Object value) {
-        Map<String, Object> map = peek();
-        @SuppressWarnings("unchecked")
-        Map<String, Object> propsMap = (Map<String, Object>)map.computeIfAbsent("properties", key -> new HashMap<>());
-        propsMap.put(name, value);
+        if (!isEmpty()) {
+            Map<String, Object> map = peek();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> propsMap = (Map<String, Object>)map.computeIfAbsent("properties", key -> new HashMap<>());
+            propsMap.put(name, value);
+        }
     }
 
     public void createProperty(String name, int propertyType, String value) throws RepositoryException {
