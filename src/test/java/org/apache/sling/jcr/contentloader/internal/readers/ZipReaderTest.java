@@ -286,15 +286,15 @@ public class ZipReaderTest {
 
     /**
      * Helper that simulates an IOException thrown during creation of temp file
-     *
+     * 
      * @param fileMock the file mock to use
      * @param expectedMsg the message expected in the IOException
      */
     private void createTempFileIOException(final File fileMock, final String expectedMsg) throws Exception {
         doWorkAsNotUnix(() -> {
             Path pathMock = (Path) Proxy.newProxyInstance(
-                    Path.class.getClassLoader(),
-                    new Class[] { Path.class },
+                    Path.class.getClassLoader(), 
+                    new Class[] { Path.class }, 
                     (proxy, method, methodArgs) -> {
                       if (method.getName().equals("toFile")) {
                           return fileMock;
