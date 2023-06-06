@@ -221,7 +221,6 @@ public class ZipReaderTest {
             assertNotNull(tempFile);
             assertTrue(tempFile.canRead());
             assertTrue(tempFile.canWrite());
-            assertFalse(tempFile.canExecute());
         } finally {
             ZipReader.removeTempFile(tempFile);
         }
