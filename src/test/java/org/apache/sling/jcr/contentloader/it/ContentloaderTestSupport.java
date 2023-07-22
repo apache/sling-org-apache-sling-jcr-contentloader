@@ -18,6 +18,7 @@
  */
 package org.apache.sling.jcr.contentloader.it;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.felix.hc.api.FormattingResultLog.msHumanReadable;
 import static org.apache.sling.testing.paxexam.SlingOptions.awaitility;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingQuickstartOakTar;
@@ -39,7 +40,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -59,6 +59,7 @@ import org.apache.sling.resource.presence.ResourcePresence;
 import org.apache.sling.testing.paxexam.SlingOptions;
 import org.apache.sling.testing.paxexam.TestSupport;
 import org.awaitility.Awaitility;
+import org.awaitility.Duration;
 import org.junit.After;
 import org.junit.Before;
 import org.ops4j.pax.exam.Option;
@@ -117,17 +118,10 @@ public abstract class ContentloaderTestSupport extends TestSupport {
             vmOption = new VMOption(vmOpt);
         }
 
-        final String jacocoOpt = System.getProperty("jacoco.command");
-        VMOption jacocoCommand = null;
-        if (jacocoOpt != null && !jacocoOpt.isEmpty()) {
-            jacocoCommand = new VMOption(jacocoOpt);
-        }
-
         final Option contentloader = mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.jcr.contentloader").version(SlingOptions.versionResolver.getVersion("org.apache.sling", "org.apache.sling.jcr.contentloader"));
         return composite(
             super.baseConfiguration(),
             when(vmOption != null).useOptions(vmOption),
-            when(jacocoCommand != null).useOptions(jacocoCommand),
             mavenBundle().groupId("org.glassfish").artifactId("jakarta.json").version("2.0.1"),
             quickstart(),
             // SLING-9735 - add server user for the o.a.s.jcr.contentloader bundle
@@ -196,8 +190,8 @@ public abstract class ContentloaderTestSupport extends TestSupport {
      */
     protected void waitForContentLoaded(long timeoutMsec, long nextIterationDelay) throws Exception {
         Awaitility.await("waitForContentLoaded")
-            .atMost(Duration.ofMillis(timeoutMsec))
-            .pollInterval(Duration.ofMillis(nextIterationDelay))
+            .atMost(new Duration(timeoutMsec, MILLISECONDS))
+            .pollInterval(new Duration(nextIterationDelay, MILLISECONDS))
             .ignoreExceptions()
             .until(() -> {
                 logger.info("Performing content-loaded health check");
