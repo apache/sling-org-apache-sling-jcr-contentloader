@@ -18,9 +18,7 @@
  */
 package org.apache.sling.jcr.contentloader.it;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.felix.hc.api.FormattingResultLog.msHumanReadable;
-import static org.apache.sling.testing.paxexam.SlingOptions.awaitility;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingQuickstartOakTar;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingResourcePresence;
 import static org.junit.Assert.assertEquals;
@@ -40,6 +38,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -59,7 +58,6 @@ import org.apache.sling.resource.presence.ResourcePresence;
 import org.apache.sling.testing.paxexam.SlingOptions;
 import org.apache.sling.testing.paxexam.TestSupport;
 import org.awaitility.Awaitility;
-import org.awaitility.Duration;
 import org.junit.After;
 import org.junit.Before;
 import org.ops4j.pax.exam.Option;
@@ -165,6 +163,20 @@ public abstract class ContentloaderTestSupport extends TestSupport {
         return slingQuickstartOakTar(workingDirectory, httpPort);
     }
 
+    /**
+     * Replacement for {@link SlingOptions#awaitility()} to utilize a newer version of awaitility
+     * <p>
+     * NOTE: may remove this at a later date and go back to {@link SlingOptions#awaitility()} whenever
+     * {@link org.apache.sling.testing.paxexam.SlingVersionResolver} provides these versions or later
+     */
+    public static ModifiableCompositeOption awaitility() {
+        return composite(
+                mavenBundle().groupId("org.awaitility").artifactId("awaitility").versionAsInProject(),
+                mavenBundle().groupId("org.hamcrest").artifactId("hamcrest").version(SlingOptions.versionResolver)
+        );
+    }
+
+
     @Before
     public void setup() throws Exception {
         session = repository.login(new SimpleCredentials(CONTENT_LOADER_VERIFY_USER, CONTENT_LOADER_VERIFY_PWD));
@@ -190,8 +202,8 @@ public abstract class ContentloaderTestSupport extends TestSupport {
      */
     protected void waitForContentLoaded(long timeoutMsec, long nextIterationDelay) throws Exception {
         Awaitility.await("waitForContentLoaded")
-            .atMost(new Duration(timeoutMsec, MILLISECONDS))
-            .pollInterval(new Duration(nextIterationDelay, MILLISECONDS))
+            .atMost(Duration.ofMillis(timeoutMsec))
+            .pollInterval(Duration.ofMillis(nextIterationDelay))
             .ignoreExceptions()
             .until(() -> {
                 logger.info("Performing content-loaded health check");
