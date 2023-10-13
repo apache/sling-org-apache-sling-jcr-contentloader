@@ -1,0 +1,11 @@
+{
+  "jcr:primaryType": "nt:unstructured",
+  "file": {
+    "jcr:primaryType": "nt:file",
+    "jcr:content": {
+      "jcr:primaryType": "nt:resource",
+      "jcr:mimeType": "image/png",
+      ":jcr:data": "iVBORw0KGgoA"
+    }
+  }
+}
