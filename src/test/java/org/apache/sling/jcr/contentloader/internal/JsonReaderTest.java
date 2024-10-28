@@ -242,6 +242,26 @@ public class JsonReaderTest {
     }
 
     @org.junit.Test
+    public void testPropertiesSingleGMTDateValue() throws Exception {
+        String json = "{ \"p1\": \"2023-05-24T10:36:11.401Z\"}";
+
+        this.mockery.checking(new Expectations() {
+            {
+                allowing(creator).createNode(null, null, null);
+                inSequence(mySequence);
+                allowing(creator).createProperty("p1", PropertyType.DATE, "2023-05-24T10:36:11.401Z");
+                inSequence(mySequence);
+
+                allowing(creator).finishNode();
+                inSequence(mySequence);
+                allowing(creator).finish();
+                inSequence(mySequence);
+            }
+        });
+        this.parse(json);
+    }
+
+    @org.junit.Test
     public void testPropertiesTwoSingleValue() throws Exception {
         String json = "{ \"p1\": \"v1\", \"p2\": \"v2\"}";
 

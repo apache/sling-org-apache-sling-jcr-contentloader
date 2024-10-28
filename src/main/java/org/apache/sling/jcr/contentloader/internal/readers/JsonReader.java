@@ -34,7 +34,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -54,6 +53,7 @@ import jakarta.json.JsonValue.ValueType;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositeRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.util.ISO8601;
 import org.apache.sling.jcr.contentloader.ContentCreator;
 import org.apache.sling.jcr.contentloader.ContentReader;
 import org.apache.sling.jcr.contentloader.LocalPrivilege;
@@ -119,8 +119,6 @@ import org.osgi.service.component.annotations.Component;
         ContentReader.PROPERTY_EXTENSIONS + "=json", ContentReader.PROPERTY_TYPES + "=application/json" })
 public class JsonReader implements ContentReader {
 
-    private static final Pattern jsonDate = Pattern.compile(
-            "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}[-+]{1}[0-9]{2}[:]{0,1}[0-9]{2}$");
     private static final String REFERENCE = "jcr:reference:";
     private static final String PATH = "jcr:path:";
     private static final String NAME = "jcr:name:";
@@ -302,7 +300,7 @@ public class JsonReader implements ContentReader {
                 return PropertyType.NAME;
             if (name.startsWith(URI))
                 return PropertyType.URI;
-            if (jsonDate.matcher((String) object).matches())
+            if (ISO8601.parse((String) object) != null)
                 return PropertyType.DATE;
         }
 
