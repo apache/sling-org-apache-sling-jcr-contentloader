@@ -71,6 +71,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.util.ISO8601;
+import org.apache.jackrabbit.value.ValueHelper;
 import org.apache.sling.jcr.base.util.AccessControlUtil;
 import org.apache.sling.jcr.contentloader.ContentCreator;
 import org.apache.sling.jcr.contentloader.ContentImportListener;
@@ -319,6 +320,13 @@ public class DefaultContentCreator implements ContentCreator {
     public void createProperty(String name, int propertyType, String value) throws RepositoryException {
         appliedSet.add(name);
         final Node node = this.parentNodeStack.peek();
+        if(name.startsWith(":") && propertyType != PropertyType.LONG){
+            // JSON Renderer in Sling GET Servlet marks binary properties with an initial colon in their name.
+            // By default, it dumps the length and not the data and the property type is LONG.
+            // If the property type is not LONG it means the json carries base64 encoded binary value.
+            name = name.substring(1);
+            propertyType = PropertyType.BINARY;
+        }
         // check if the property already exists and isPropertyOverwrite() is false,
         // don't overwrite it in this case
         if (node.hasProperty(name) && !this.configuration.isPropertyOverwrite() && !node.getProperty(name).isNew()) {
@@ -346,6 +354,15 @@ public class DefaultContentCreator implements ContentCreator {
         } else if (propertyType == PropertyType.DATE) {
             checkoutIfNecessary(node);
             node.setProperty(name, ISO8601.parse(value));
+            if (this.importListener != null) {
+                this.importListener.onCreate(node.getProperty(name).getPath());
+            }
+        } else if (propertyType == PropertyType.BINARY) {
+            checkoutIfNecessary(node);
+            // Re-use the same code that Jackrabbit uses to import from JCR XML.
+            // The decodeBlanks flag can be ignored since base64-encoded data cannot contain encoded space characters
+            Value binaryValue = ValueHelper.deserialize(value, propertyType, true, node.getSession().getValueFactory());
+            node.setProperty(name, binaryValue);
             if (this.importListener != null) {
                 this.importListener.onCreate(node.getProperty(name).getPath());
             }

@@ -59,6 +59,7 @@ import javax.jcr.security.AccessControlPolicy;
 
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.value.BinaryValue;
 import org.apache.sling.jcr.base.util.AccessControlUtil;
 import org.apache.sling.jcr.contentloader.ContentImportListener;
 import org.apache.sling.jcr.contentloader.ContentReader;
@@ -473,6 +474,32 @@ public class DefaultContentCreatorTest {
         assertFalse(parentNode.hasProperty(propName));
         contentCreator.createProperty(propName, PropertyType.STRING, new String[]{});
         assertTrue(parentNode.hasProperty(propName));
+    }
+
+    @Test
+    public void testCreateBinaryProperty() throws RepositoryException {
+        final String propertyName = ":jcr:data";
+        final String propertyValue = "iVBORw0KGgoA";
+        final ContentImportListener listener = mockery.mock(ContentImportListener.class);
+        parentNode = mockery.mock(Node.class);
+        prop = mockery.mock(Property.class);
+
+        this.mockery.checking(new Expectations(){{
+            // the initial colon is stripped off and ':jcr:data' becomes 'jcr:data'
+            String propertyName = "jcr:data";
+            oneOf(parentNode).hasProperty(with(equal(propertyName)));
+            oneOf(parentNode).getSession();
+            oneOf(parentNode).setProperty(with(equal(propertyName)), with(any(BinaryValue.class)));
+            oneOf(parentNode).getProperty(with(equal(propertyName))); will(returnValue(prop));
+            oneOf(prop).getPath(); will(returnValue(""));
+            oneOf(listener).onCreate(with(any(String.class)));
+        }});
+
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<>(), null, listener);
+        contentCreator.prepareParsing(parentNode, null);
+
+        contentCreator.createProperty(propertyName, PropertyType.STRING, propertyValue);
+        mockery.assertIsSatisfied();
     }
 
     //------DefaultContentCreator#finishNode()------//
