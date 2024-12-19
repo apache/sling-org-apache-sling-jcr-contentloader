@@ -18,13 +18,6 @@
  */
 package org.apache.sling.jcr.contentloader.internal.readers;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -43,6 +36,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 
 public class ZipReaderTest {
 
@@ -73,7 +73,6 @@ public class ZipReaderTest {
             public double thresholdRatio() {
                 return 3.0;
             }
-
         };
         reader.activate(config);
         creator = new MockContentCreator();
@@ -82,6 +81,7 @@ public class ZipReaderTest {
     private interface ZipPopulate {
         public void populate(ZipOutputStream zipOut) throws IOException;
     }
+
     protected byte[] generateZip(ZipPopulate populateFn) throws IOException {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream();
                 ZipOutputStream zipOut = new ZipOutputStream(out)) {
@@ -105,10 +105,10 @@ public class ZipReaderTest {
         Random random = new Random();
 
         String generatedString = random.ints(leftLimit, rightLimit + 1)
-          .filter(i -> (i <= 57 || i >= 65) && (i <= 90 || i >= 97))
-          .limit(targetStringLength)
-          .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
-          .toString();
+                .filter(i -> (i <= 57 || i >= 65) && (i <= 90 || i >= 97))
+                .limit(targetStringLength)
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
 
         return generatedString.getBytes();
     }
@@ -158,7 +158,7 @@ public class ZipReaderTest {
     public void totalEntryCountExceeded() throws Exception {
         // generate a zip with too many entries
         byte[] zipBytes = generateZip(zipOut -> {
-            for (int i=0; i < 6; i++) {
+            for (int i = 0; i < 6; i++) {
                 ZipEntry entry = new ZipEntry(String.format("entry%d", i));
                 zipOut.putNextEntry(entry);
                 zipOut.write(String.format("Hello %d", i).getBytes());
@@ -199,7 +199,7 @@ public class ZipReaderTest {
             zipOut.putNextEntry(entry);
             // a string of all the same characters will have a high
             // compression ratio
-            for (int i=0; i < 1000; i++) {
+            for (int i = 0; i < 1000; i++) {
                 zipOut.write('a');
             }
             zipOut.closeEntry();
@@ -253,13 +253,16 @@ public class ZipReaderTest {
         try {
             final File finalTempFile = ZipReader.createTempFile();
             tempFile = finalTempFile;
-            try (MockedStatic<Files> filesMock = Mockito.mockStatic(Files.class);) {
-                filesMock.when(() -> Files.delete(finalTempFile.toPath()))
-                    .thenThrow(new IOException("simulating ioexception during delete"));
+            try (MockedStatic<Files> filesMock = Mockito.mockStatic(Files.class); ) {
+                filesMock
+                        .when(() -> Files.delete(finalTempFile.toPath()))
+                        .thenThrow(new IOException("simulating ioexception during delete"));
 
                 String err = doWorkWithCapturedSystemErr(() -> ZipReader.removeTempFile(finalTempFile));
-                assertTrue("Expected warning logged about IOException wile removing the temp file",
-                        err.contains("WARN org.apache.sling.jcr.contentloader.internal.readers.ZipReader - Failed to remove the temp file"));
+                assertTrue(
+                        "Expected warning logged about IOException wile removing the temp file",
+                        err.contains(
+                                "WARN org.apache.sling.jcr.contentloader.internal.readers.ZipReader - Failed to remove the temp file"));
             }
         } finally {
             ZipReader.removeTempFile(tempFile);
@@ -286,27 +289,23 @@ public class ZipReaderTest {
 
     /**
      * Helper that simulates an IOException thrown during creation of temp file
-     * 
+     *
      * @param fileMock the file mock to use
      * @param expectedMsg the message expected in the IOException
      */
     private void createTempFileIOException(final File fileMock, final String expectedMsg) throws Exception {
         doWorkAsNotUnix(() -> {
             Path pathMock = (Path) Proxy.newProxyInstance(
-                    Path.class.getClassLoader(), 
-                    new Class[] { Path.class }, 
-                    (proxy, method, methodArgs) -> {
-                      if (method.getName().equals("toFile")) {
-                          return fileMock;
-                      } else {
-                          throw new UnsupportedOperationException(
-                            "Unsupported method: " + method.getName());
-                      }
-                  });
+                    Path.class.getClassLoader(), new Class[] {Path.class}, (proxy, method, methodArgs) -> {
+                        if (method.getName().equals("toFile")) {
+                            return fileMock;
+                        } else {
+                            throw new UnsupportedOperationException("Unsupported method: " + method.getName());
+                        }
+                    });
 
-            try (MockedStatic<Files> filesMock = Mockito.mockStatic(Files.class);) {
-                filesMock.when(() -> Files.createTempFile("zipentry", ".tmp"))
-                    .thenReturn(pathMock);
+            try (MockedStatic<Files> filesMock = Mockito.mockStatic(Files.class); ) {
+                filesMock.when(() -> Files.createTempFile("zipentry", ".tmp")).thenReturn(pathMock);
                 IOException ioe = assertThrows(IOException.class, () -> ZipReader.createTempFile());
                 assertEquals(expectedMsg, ioe.getMessage());
             }
@@ -326,9 +325,8 @@ public class ZipReaderTest {
      * @param worker the worker
      */
     static void doWorkAsNotUnix(RunnableWithExceptions worker) throws Exception {
-        try (MockedStatic<ZipReader> zipReaderMock = Mockito.mockStatic(ZipReader.class, CALLS_REAL_METHODS);) {
-            zipReaderMock.when(() -> ZipReader.isOsUnix())
-                .thenReturn(false);
+        try (MockedStatic<ZipReader> zipReaderMock = Mockito.mockStatic(ZipReader.class, CALLS_REAL_METHODS); ) {
+            zipReaderMock.when(() -> ZipReader.isOsUnix()).thenReturn(false);
 
             // do the work
             worker.run();
@@ -350,7 +348,7 @@ public class ZipReaderTest {
             // switch to the capture stream
             System.setErr(ps);
 
-            //do the work
+            // do the work
             worker.run();
         } finally {
             // Put things back
@@ -359,5 +357,4 @@ public class ZipReaderTest {
         }
         return baos.toString();
     }
-
 }

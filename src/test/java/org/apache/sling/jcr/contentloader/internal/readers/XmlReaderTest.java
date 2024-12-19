@@ -18,8 +18,7 @@
  */
 package org.apache.sling.jcr.contentloader.internal.readers;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertThrows;
+import javax.jcr.RepositoryException;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -29,9 +28,10 @@ import java.net.URL;
 import java.util.Date;
 import java.util.Map;
 
-import javax.jcr.RepositoryException;
-
 import junit.framework.TestCase;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertThrows;
 
 public class XmlReaderTest extends TestCase {
 
@@ -64,7 +64,9 @@ public class XmlReaderTest extends TestCase {
             // Expected
         }
         assertEquals("mimeType mismatch", "application/test", file.mimeType);
-        assertEquals("lastModified mismatch", XmlReader.FileDescription.createDateFormat().parse("1977-06-01T07:00:00+0100"),
+        assertEquals(
+                "lastModified mismatch",
+                XmlReader.FileDescription.createDateFormat().parse("1977-06-01T07:00:00+0100"),
                 new Date(file.lastModified));
         assertEquals("Could not read file", "This is a test file.", file.content);
     }
@@ -81,13 +83,13 @@ public class XmlReaderTest extends TestCase {
         Map<String, Object> map = creator.get(0);
         assertEquals("nodeName", map.get("name"));
         assertEquals("type", map.get("primaryNodeType"));
-        assertArrayEquals(new String[] {"mixtype1", "mixtype2"}, (String[])map.get("mixinNodeTypes"));
+        assertArrayEquals(new String[] {"mixtype1", "mixtype2"}, (String[]) map.get("mixinNodeTypes"));
 
         @SuppressWarnings("unchecked")
-        Map<String, Object> propsMap = (Map<String, Object>)map.get("properties");
+        Map<String, Object> propsMap = (Map<String, Object>) map.get("properties");
         assertNotNull(propsMap);
         assertEquals("propValue", propsMap.get("propName"));
-        assertArrayEquals(new String[] {"propValue1", "propValue2"}, (String[])propsMap.get("multiPropName"));
+        assertArrayEquals(new String[] {"propValue1", "propValue2"}, (String[]) propsMap.get("multiPropName"));
         assertNull(propsMap.get("multiPropName2"));
     }
 
@@ -110,9 +112,8 @@ public class XmlReaderTest extends TestCase {
         long originalLastModified = file.lastModified();
         assertEquals("Did not create expected number of files", 1, creator.filesCreated.size());
         MockContentCreator.FileDescription fileDescription = creator.filesCreated.get(0);
-        assertEquals("Did not pick up last modified date from file", originalLastModified,
-                fileDescription.lastModified);
-
+        assertEquals(
+                "Did not pick up last modified date from file", originalLastModified, fileDescription.lastModified);
     }
 
     protected void setUp() throws Exception {
@@ -130,38 +131,43 @@ public class XmlReaderTest extends TestCase {
     }
 
     public void testMalformedXmlUnexpectedPropertyElement() throws Exception {
-        malformedXmlTest("<property/>",
+        malformedXmlTest(
+                "<property/>",
                 "XML file does not seem to contain valid content xml. Expected name element for property in : null");
     }
 
     public void testMalformedXmlUnexpectedNameElement() throws Exception {
-        malformedXmlTest("<name></name>",
+        malformedXmlTest(
+                "<name></name>",
                 "XML file does not seem to contain valid content xml. Unexpected name element in : null");
     }
 
     public void testMalformedXmlUnexpectedValueElement() throws Exception {
-        malformedXmlTest("<value></value>",
+        malformedXmlTest(
+                "<value></value>",
                 "XML file does not seem to contain valid content xml. Unexpected value element in : null");
     }
 
     public void testMalformedXmlUnexpectedValuesElement() throws Exception {
-        malformedXmlTest("<values></values>",
+        malformedXmlTest(
+                "<values></values>",
                 "XML file does not seem to contain valid content xml. Unexpected values element in : null");
     }
 
     public void testMalformedXmlUnexpectedTypeElement() throws Exception {
-        malformedXmlTest("<type></type>",
+        malformedXmlTest(
+                "<type></type>",
                 "XML file does not seem to contain valid content xml. Unexpected type element in : null");
     }
 
     public void testMalformedXmlUnexpectedPrimaryNodeTypeElement() throws Exception {
-        malformedXmlTest("<primaryNodeType></primaryNodeType>",
+        malformedXmlTest(
+                "<primaryNodeType></primaryNodeType>",
                 "Element is not allowed at this location: primaryNodeType in null");
     }
 
     public void testMalformedXmlUnexpectedMixinNodeTypeElement() throws Exception {
-        malformedXmlTest("<mixinNodeType></mixinNodeType>",
-                "Element is not allowed at this location: mixinNodeType in null");
+        malformedXmlTest(
+                "<mixinNodeType></mixinNodeType>", "Element is not allowed at this location: mixinNodeType in null");
     }
-
 }

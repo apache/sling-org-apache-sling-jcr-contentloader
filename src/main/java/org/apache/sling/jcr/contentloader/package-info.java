@@ -19,4 +19,3 @@
 
 @org.osgi.annotation.versioning.Version("0.5.0")
 package org.apache.sling.jcr.contentloader;
-

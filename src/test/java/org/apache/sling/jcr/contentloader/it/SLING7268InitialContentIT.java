@@ -18,10 +18,12 @@
  */
 package org.apache.sling.jcr.contentloader.it;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfiguration;
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlList;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.Privilege;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,13 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlEntry;
-import javax.jcr.security.AccessControlList;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.Privilege;
-
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Multimap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -54,13 +51,15 @@ import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.osgi.framework.Bundle;
 
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.Multimap;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfiguration;
 
 /**
  * test of a bundle that provides initial content that creates a user/group and defines an ace
  * for those principals within the same transaction
-
+ *
  */
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
@@ -69,19 +68,13 @@ public class SLING7268InitialContentIT extends ContentloaderTestSupport {
     @Configuration
     public Option[] configuration() throws IOException {
         final String header = DEFAULT_PATH_IN_BUNDLE + ";path:=" + CONTENT_ROOT_PATH;
-        final Multimap<String, String> content = ImmutableListMultimap.of(
-            DEFAULT_PATH_IN_BUNDLE, "SLING-7268.json"
-        );
+        final Multimap<String, String> content = ImmutableListMultimap.of(DEFAULT_PATH_IN_BUNDLE, "SLING-7268.json");
         final Option bundle = buildInitialContentBundle(header, content);
         // configure the health check component
         Option hcConfig = factoryConfiguration("org.apache.sling.jcr.contentloader.hc.BundleContentLoadedCheck")
-            .put("hc.tags", new String[] {TAG_TESTING_CONTENT_LOADING})
-            .asOption();
-        return new Option[]{
-            baseConfiguration(),
-            hcConfig,
-            bundle
-        };
+                .put("hc.tags", new String[] {TAG_TESTING_CONTENT_LOADING})
+                .asOption();
+        return new Option[] {baseConfiguration(), hcConfig, bundle};
     }
 
     /* (non-Javadoc)
@@ -91,10 +84,10 @@ public class SLING7268InitialContentIT extends ContentloaderTestSupport {
     @Override
     public void setup() throws Exception {
         super.setup();
-        
+
         waitForContentLoaded();
     }
-    
+
     @Test
     public void bundleStarted() {
         final Bundle b = findBundle(BUNDLE_SYMBOLICNAME);
@@ -106,7 +99,10 @@ public class SLING7268InitialContentIT extends ContentloaderTestSupport {
     public void initialContentInstalled() throws RepositoryException {
         final String folderPath = CONTENT_ROOT_PATH + "/SLING-7268";
         assertTrue("Expecting initial content to be installed", session.itemExists(folderPath));
-        assertEquals("folder has node type 'sling:Folder'", "sling:Folder", session.getNode(folderPath).getPrimaryNodeType().getName());
+        assertEquals(
+                "folder has node type 'sling:Folder'",
+                "sling:Folder",
+                session.getNode(folderPath).getPrimaryNodeType().getName());
     }
 
     @Test
@@ -138,7 +134,8 @@ public class SLING7268InitialContentIT extends ContentloaderTestSupport {
         List<AccessControlEntry> allEntries = new ArrayList<AccessControlEntry>();
         for (AccessControlPolicy accessControlPolicy : policies) {
             if (accessControlPolicy instanceof AccessControlList) {
-                AccessControlEntry[] accessControlEntries = ((AccessControlList) accessControlPolicy).getAccessControlEntries();
+                AccessControlEntry[] accessControlEntries =
+                        ((AccessControlList) accessControlPolicy).getAccessControlEntries();
                 allEntries.addAll(Arrays.asList(accessControlEntries));
             }
         }
@@ -148,7 +145,7 @@ public class SLING7268InitialContentIT extends ContentloaderTestSupport {
             aceMap.put(accessControlEntry.getPrincipal().getName(), accessControlEntry);
         }
 
-        //check ACE for sling7268_user
+        // check ACE for sling7268_user
         AccessControlEntry testUserAce = aceMap.get("sling7268_user");
         assertNotNull("Expected ACE for test user", testUserAce);
         assertEquals("sling7268_user", testUserAce.getPrincipal().getName());
@@ -162,7 +159,7 @@ public class SLING7268InitialContentIT extends ContentloaderTestSupport {
         assertTrue("Expecting granted read privilege", privilegeNames.contains("jcr:read"));
         assertTrue("Expecting granted write privilege", privilegeNames.contains("jcr:write"));
 
-        //check ACE for sling7268_group
+        // check ACE for sling7268_group
         AccessControlEntry testGroupAce = aceMap.get("sling7268_group");
         assertNotNull("Expected ACE for test user", testGroupAce);
         assertEquals("sling7268_group", testGroupAce.getPrincipal().getName());
@@ -173,9 +170,10 @@ public class SLING7268InitialContentIT extends ContentloaderTestSupport {
         for (Privilege privilege : privileges) {
             privilegeNames.add(privilege.getName());
         }
-        assertTrue("Expecting granted modifyAccessControl privilege", privilegeNames.contains("jcr:modifyAccessControl"));
+        assertTrue(
+                "Expecting granted modifyAccessControl privilege", privilegeNames.contains("jcr:modifyAccessControl"));
 
-        //check ACE for everyone group
+        // check ACE for everyone group
         AccessControlEntry everyoneAce = aceMap.get("everyone");
         assertNotNull("Expected ACE for everyone", everyoneAce);
         assertEquals("everyone", everyoneAce.getPrincipal().getName());
@@ -185,5 +183,4 @@ public class SLING7268InitialContentIT extends ContentloaderTestSupport {
 
         assertEquals("Expecting granted read privilege", "jcr:read", privileges[0].getName());
     }
-
 }

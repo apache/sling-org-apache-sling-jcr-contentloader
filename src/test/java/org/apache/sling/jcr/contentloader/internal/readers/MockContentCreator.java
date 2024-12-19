@@ -18,6 +18,9 @@
  */
 package org.apache.sling.jcr.contentloader.internal.readers;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,12 +32,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-
 import org.apache.sling.jcr.contentloader.ContentCreator;
 
-@SuppressWarnings("serial") 
+@SuppressWarnings("serial")
 class MockContentCreator extends Stack<Map<String, Object>> implements ContentCreator {
 
     public static class FileDescription {
@@ -55,11 +55,9 @@ class MockContentCreator extends Stack<Map<String, Object>> implements ContentCr
 
     public List<MockContentCreator.FileDescription> filesCreated = new ArrayList<MockContentCreator.FileDescription>();
 
-    public MockContentCreator() {
-    }
+    public MockContentCreator() {}
 
-    public void createNode(String name, String primaryNodeType, String[] mixinNodeTypes)
-            throws RepositoryException {
+    public void createNode(String name, String primaryNodeType, String[] mixinNodeTypes) throws RepositoryException {
         Map<String, Object> map = new HashMap<>();
         map.put("name", name);
         map.put("primaryNodeType", primaryNodeType);
@@ -67,14 +65,14 @@ class MockContentCreator extends Stack<Map<String, Object>> implements ContentCr
         this.push(map);
     }
 
-    public void finishNode() throws RepositoryException {
-    }
+    public void finishNode() throws RepositoryException {}
 
     protected void recordProperty(String name, Object value) {
         if (!isEmpty()) {
             Map<String, Object> map = peek();
             @SuppressWarnings("unchecked")
-            Map<String, Object> propsMap = (Map<String, Object>)map.computeIfAbsent("properties", key -> new HashMap<>());
+            Map<String, Object> propsMap =
+                    (Map<String, Object>) map.computeIfAbsent("properties", key -> new HashMap<>());
             propsMap.put(name, value);
         }
     }
@@ -109,34 +107,33 @@ class MockContentCreator extends Stack<Map<String, Object>> implements ContentCr
     }
 
     public void createAce(String principal, String[] grantedPrivileges, String[] deniedPrivileges, String order)
-            throws RepositoryException {
-    }
+            throws RepositoryException {}
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * org.apache.sling.jcr.contentloader.ContentCreator#createAce(java.lang.String,
      * java.lang.String[], java.lang.String[], java.lang.String, java.util.Map,
      * java.util.Map, java.util.Set)
      */
     @Override
-    public void createAce(String principal, String[] grantedPrivileges, String[] deniedPrivileges, String order,
-            Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions,
-            Set<String> removedRestrictionNames) throws RepositoryException {
-    }
+    public void createAce(
+            String principal,
+            String[] grantedPrivileges,
+            String[] deniedPrivileges,
+            String order,
+            Map<String, Value> restrictions,
+            Map<String, Value[]> mvRestrictions,
+            Set<String> removedRestrictionNames)
+            throws RepositoryException {}
 
     public void createGroup(String name, String[] members, Map<String, Object> extraProperties)
-            throws RepositoryException {
-    }
+            throws RepositoryException {}
 
     public void createUser(String name, String password, Map<String, Object> extraProperties)
-            throws RepositoryException {
-    }
+            throws RepositoryException {}
 
     @Override
-    public void finish() throws RepositoryException {
-
-    }
-
+    public void finish() throws RepositoryException {}
 }

@@ -18,12 +18,6 @@
  */
 package org.apache.sling.jcr.contentloader;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -37,32 +31,43 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.osgi.framework.Bundle;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 public class PathEntryTest {
     final String pathEntryPath = "/test/path";
-    
+
     @Rule
     public final JUnitRuleMockery mockery = new JUnitRuleMockery();
 
     @Test
-    public void testGetContentPaths(){
+    public void testGetContentPaths() {
         final Bundle bundle = mockery.mock(Bundle.class);
         final Dictionary<String, String> dict = new Hashtable<>();
         dict.put("Bnd-LastModified", "1258555936230");
         dict.put(PathEntry.CONTENT_HEADER, "test1, test2");
-        //PathEntry#getContentPaths should return this value
-        //since its lower that value of "Bnd-LastModified" key
+        // PathEntry#getContentPaths should return this value
+        // since its lower that value of "Bnd-LastModified" key
         final long lastModifiedValue = 1258555936229L;
 
-        mockery.checking(new Expectations() {{
-            allowing(bundle).getSymbolicName(); will(returnValue("example-bundle-name"));
-            allowing(bundle).getLastModified(); will(returnValue(lastModifiedValue));
-            allowing(bundle).getHeaders(); will(returnValue(dict));
-        }});
+        mockery.checking(new Expectations() {
+            {
+                allowing(bundle).getSymbolicName();
+                will(returnValue("example-bundle-name"));
+                allowing(bundle).getLastModified();
+                will(returnValue(lastModifiedValue));
+                allowing(bundle).getHeaders();
+                will(returnValue(dict));
+            }
+        });
 
         int i = 0;
         Iterator<PathEntry> paths = PathEntry.getContentPaths(bundle);
         assertNotNull(paths);
-        while(paths.hasNext()){
+        while (paths.hasNext()) {
             i++;
             assertEquals(lastModifiedValue, paths.next().getLastModified());
         }
@@ -120,7 +125,7 @@ public class PathEntryTest {
     private class TestEntry implements ManifestHeader.Entry {
         private final Map<String, String> values;
 
-        private TestEntry(Map<String, String> values){
+        private TestEntry(Map<String, String> values) {
             this.values = values;
         }
 

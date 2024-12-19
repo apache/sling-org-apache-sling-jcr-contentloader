@@ -57,19 +57,19 @@ public class PathEntry extends ImportOptions {
     public static final String OVERWRITE_DIRECTIVE = "overwrite";
 
     /**
-     * The overwriteProperties directive specifying if content properties 
+     * The overwriteProperties directive specifying if content properties
      * should be overwritten or just initially added.
      */
     public static final String OVERWRITE_PROPERTIES_DIRECTIVE = "overwriteProperties";
-    
+
     /**
-     * The overwriteProperties directive specifying if content properties 
+     * The overwriteProperties directive specifying if content properties
      * should be overwritten or just initially added.
      */
     public static final String MERGE_PROPERTIES_DIRECTIVE = "mergeProperties";
-    
+
     /**
-     * The overwriteProperties directive specifying if content properties 
+     * The overwriteProperties directive specifying if content properties
      * should be overwritten or just initially added.
      */
     public static final String MERGE_NODES_DIRECTIVE = "merge";
@@ -101,7 +101,7 @@ public class PathEntry extends ImportOptions {
     public static final String AUTOCHECKOUT_DIRECTIVE = "autoCheckout";
 
     /**
-     * The ignore content readers directive specifying whether the available 
+     * The ignore content readers directive specifying whether the available
      * {@link org.apache.sling.jcr.contentloader.ContentReader}s should be used during
      * content loading. This is a string value that defaults to the emptystring.
      * @since 2.0.4
@@ -109,7 +109,7 @@ public class PathEntry extends ImportOptions {
     public static final String IGNORE_CONTENT_READERS_DIRECTIVE = "ignoreImportProviders";
 
     /**
-     * The require content readers directive specifying which of the available 
+     * The require content readers directive specifying which of the available
      * {@link org.apache.sling.jcr.contentloader.ContentReader}s should exist before
      * content loading. This is a string value that defaults to the emptystring.
      * @since 2.5.2
@@ -126,22 +126,21 @@ public class PathEntry extends ImportOptions {
 
     /** All directive names which are valid for header Sling-Initial-Content */
     protected static final Set<String> VALID_DIRECTIVES = new HashSet<>(Arrays.asList(
-        OVERWRITE_DIRECTIVE,
-        OVERWRITE_PROPERTIES_DIRECTIVE,
-        MERGE_PROPERTIES_DIRECTIVE,
-        MERGE_NODES_DIRECTIVE,
-        UNINSTALL_DIRECTIVE,
-        PATH_DIRECTIVE,
-        WORKSPACE_DIRECTIVE,
-        CHECKIN_DIRECTIVE,
-        AUTOCHECKOUT_DIRECTIVE,
-        IGNORE_CONTENT_READERS_DIRECTIVE,
-        REQUIRE_CONTENT_READERS_DIRECTIVE,
-        MAVEN_MOUNT_DIRECTIVE
-    ));
+            OVERWRITE_DIRECTIVE,
+            OVERWRITE_PROPERTIES_DIRECTIVE,
+            MERGE_PROPERTIES_DIRECTIVE,
+            MERGE_NODES_DIRECTIVE,
+            UNINSTALL_DIRECTIVE,
+            PATH_DIRECTIVE,
+            WORKSPACE_DIRECTIVE,
+            CHECKIN_DIRECTIVE,
+            AUTOCHECKOUT_DIRECTIVE,
+            IGNORE_CONTENT_READERS_DIRECTIVE,
+            REQUIRE_CONTENT_READERS_DIRECTIVE,
+            MAVEN_MOUNT_DIRECTIVE));
 
     private final boolean propertyMerge;
-    
+
     private final boolean nodeMerge;
 
     /** The path for the initial content. */
@@ -161,7 +160,7 @@ public class PathEntry extends ImportOptions {
 
     /** Should versionable nodes be auto checked out when necessary? */
     private final boolean autoCheckout;
-    
+
     /** Which content readers should be ignored? @since 2.0.4 */
     private final List<String> ignoreContentReaders;
 
@@ -179,22 +178,26 @@ public class PathEntry extends ImportOptions {
 
     private long lastModified;
 
-    /** 
+    /**
      * Parses the "Sling-Initial-Content" header from the given manifest and returns the resolved PathEntries
-     * 
+     *
      * @param manifest the manifest
      * @param bundleLastModified the timestamp when the bundle has been last modified or -1 if not known
      * @return an iterator over the parsed {@code PathEntry} items or {@code null} in case no "Sling-Initial-Content" header was found in the manifest
      */
-    public static @Nullable Iterator<PathEntry> getContentPaths(@NotNull final Manifest manifest, long bundleLastModified) {
-        // convert to map of right type (Attributes has Attributes.Name as key type, not String), so simple casting won't do
-        Map<String, String> headers = manifest.getMainAttributes().entrySet().stream().collect(Collectors.toMap( e -> e.getKey().toString(),  e-> e.getValue().toString()));
+    public static @Nullable Iterator<PathEntry> getContentPaths(
+            @NotNull final Manifest manifest, long bundleLastModified) {
+        // convert to map of right type (Attributes has Attributes.Name as key type, not String), so simple casting
+        // won't do
+        Map<String, String> headers = manifest.getMainAttributes().entrySet().stream()
+                .collect(Collectors.toMap(
+                        e -> e.getKey().toString(), e -> e.getValue().toString()));
         return getContentPaths(headers, bundleLastModified);
     }
 
-    /** 
+    /**
      * Parses the "Sling-Initial-Content" header from the given bundle and returns the resolved PathEntries
-     * 
+     *
      * @param bundle the bundle
      * @return an iterator over the parsed {@code PathEntry} items or {@code null} in case no "Sling-Initial-Content" header was found in the bundle's manifest
      */
@@ -202,21 +205,23 @@ public class PathEntry extends ImportOptions {
         return getContentPaths(toMap(bundle.getHeaders()), bundle.getLastModified(), bundle.getSymbolicName());
     }
 
-    /** 
+    /**
      * Parses the "Sling-Initial-Content" header from the given headers and returns the resolved PathEntries
-     * 
+     *
      * @param headers the manifest headers
      * @param bundleLastModified the timestamp when the bundle has been last modified or -1 if not known
      * @return an iterator over the parsed {@code PathEntry} items or {@code null} in case no "Sling-Initial-Content" header was found
      */
-    public static @Nullable Iterator<PathEntry> getContentPaths(final Map<String, String> headers, long bundleLastModified) {
+    public static @Nullable Iterator<PathEntry> getContentPaths(
+            final Map<String, String> headers, long bundleLastModified) {
         return getContentPaths(headers, bundleLastModified, null);
     }
 
-    private static @Nullable Iterator<PathEntry> getContentPaths(final Map<String, String> headers, long bundleLastModified, @Nullable String bundleSymblicName) {
+    private static @Nullable Iterator<PathEntry> getContentPaths(
+            final Map<String, String> headers, long bundleLastModified, @Nullable String bundleSymblicName) {
         final List<PathEntry> entries = new ArrayList<>();
         String bundleLastModifiedStamp = headers.get("Bnd-LastModified");
-        if ( bundleLastModifiedStamp != null ) {
+        if (bundleLastModifiedStamp != null) {
             bundleLastModified = Math.min(bundleLastModified, Long.parseLong(bundleLastModifiedStamp));
         }
         final String root = headers.get(CONTENT_HEADER);
@@ -235,8 +240,7 @@ public class PathEntry extends ImportOptions {
 
     private static Map<String, String> toMap(Dictionary<String, String> dict) {
         List<String> keys = Collections.list(dict.keys());
-        return keys.stream()
-                   .collect(Collectors.toMap(Function.identity(), dict::get));
+        return keys.stream().collect(Collectors.toMap(Function.identity(), dict::get));
     }
 
     public PathEntry(ManifestHeader.Entry entry, long bundleLastModified) {
@@ -248,20 +252,30 @@ public class PathEntry extends ImportOptions {
         this.lastModified = bundleLastModified;
 
         final String logPrefix;
-        if (bundleSymbolicName != null  && !bundleSymbolicName.isEmpty()) {
+        if (bundleSymbolicName != null && !bundleSymbolicName.isEmpty()) {
             logPrefix = "Bundle '" + bundleSymbolicName + "': ";
         } else {
             logPrefix = "";
         }
         // check for attributes
         if (entry.getAttributes().length > 0 && log.isWarnEnabled()) {
-            log.warn("{}Attributes are not supported in header {} but this header used attributes '{}'. Maybe a directive (with key/value separator ':=') was meant instead?", logPrefix, CONTENT_HEADER, 
-                    Arrays.stream(entry.getAttributes()).map(attr -> attr.getName() + "=" + attr.getValue()).collect(Collectors.joining(", ")));
+            log.warn(
+                    "{}Attributes are not supported in header {} but this header used attributes '{}'. Maybe a directive (with key/value separator ':=') was meant instead?",
+                    logPrefix,
+                    CONTENT_HEADER,
+                    Arrays.stream(entry.getAttributes())
+                            .map(attr -> attr.getName() + "=" + attr.getValue())
+                            .collect(Collectors.joining(", ")));
         }
         // check for invalid directives
         for (NameValuePair directive : entry.getDirectives()) {
             if (!VALID_DIRECTIVES.contains(directive.getName())) {
-                log.warn("{}Directive '{}' not supported in header {} but it is used with value '{}'", logPrefix, directive.getName(), CONTENT_HEADER, directive.getValue());
+                log.warn(
+                        "{}Directive '{}' not supported in header {} but it is used with value '{}'",
+                        logPrefix,
+                        directive.getName(),
+                        CONTENT_HEADER,
+                        directive.getValue());
             }
         }
         // merge directive
@@ -271,7 +285,7 @@ public class PathEntry extends ImportOptions {
         } else {
             this.propertyMerge = false;
         }
-        
+
         // merge directive
         final String mergeNodes = entry.getDirectiveValue(MERGE_NODES_DIRECTIVE);
         if (mergeNodes != null) {
@@ -279,7 +293,7 @@ public class PathEntry extends ImportOptions {
         } else {
             this.nodeMerge = false;
         }
-        
+
         // overwrite directive
         final String overwriteValue = entry.getDirectiveValue(OVERWRITE_DIRECTIVE);
         if (overwriteValue != null) {
@@ -295,8 +309,7 @@ public class PathEntry extends ImportOptions {
         } else {
             this.overwriteProperties = false;
         }
-        
- 
+
         // uninstall directive
         final String uninstallValue = entry.getDirectiveValue(UNINSTALL_DIRECTIVE);
         if (uninstallValue != null) {
@@ -332,9 +345,9 @@ public class PathEntry extends ImportOptions {
         // expand directive
         this.ignoreContentReaders = new ArrayList<>();
         final String expandValue = entry.getDirectiveValue(IGNORE_CONTENT_READERS_DIRECTIVE);
-        if ( expandValue != null && expandValue.length() > 0 ) {
+        if (expandValue != null && expandValue.length() > 0) {
             final StringTokenizer st = new StringTokenizer(expandValue, ",");
-            while ( st.hasMoreTokens() ) {
+            while (st.hasMoreTokens()) {
                 this.ignoreContentReaders.add(st.nextToken());
             }
         }
@@ -342,9 +355,9 @@ public class PathEntry extends ImportOptions {
         // expand directive
         this.requireContentReaders = new ArrayList<>();
         final String requireContentReadersValue = entry.getDirectiveValue(REQUIRE_CONTENT_READERS_DIRECTIVE);
-        if ( requireContentReadersValue != null && requireContentReadersValue.length() > 0 ) {
+        if (requireContentReadersValue != null && requireContentReadersValue.length() > 0) {
             final StringTokenizer st = new StringTokenizer(requireContentReadersValue, ",");
-            while ( st.hasMoreTokens() ) {
+            while (st.hasMoreTokens()) {
                 this.requireContentReaders.add(st.nextToken());
             }
         }
@@ -357,11 +370,11 @@ public class PathEntry extends ImportOptions {
             this.workspace = null;
         }
     }
-    
+
     public long getLastModified() {
         return lastModified;
     }
-    
+
     public String getPath() {
         return this.path;
     }
@@ -404,7 +417,7 @@ public class PathEntry extends ImportOptions {
      * @see org.apache.sling.jcr.contentloader.ImportOptions#isIgnoredImportProvider(java.lang.String)
      */
     public boolean isIgnoredImportProvider(String extension) {
-        if ( extension.startsWith(".") ) {
+        if (extension.startsWith(".")) {
             extension = extension.substring(1);
         }
         return this.ignoreContentReaders.contains(extension);
@@ -419,35 +432,40 @@ public class PathEntry extends ImportOptions {
         boolean required = false;
 
         if (!this.requireContentReaders.isEmpty()) {
-            // a directive was supplied, so use a filter to check if the 
-            //  name ends with the suffix and is not listed in the ignored 
+            // a directive was supplied, so use a filter to check if the
+            //  name ends with the suffix and is not listed in the ignored
             //  import provider set
             required = this.requireContentReaders.stream()
-                            .anyMatch(suffix ->
-                                        // verify the file suffix matches
-                                        hasNameSuffix(name, suffix) &&
-                                        // and not one of the ignored providers
-                                        !isIgnoredImportProvider(suffix));
+                    .anyMatch(suffix ->
+                            // verify the file suffix matches
+                            hasNameSuffix(name, suffix)
+                                    &&
+                                    // and not one of the ignored providers
+                                    !isIgnoredImportProvider(suffix));
         }
         return required;
     }
 
     /**
      * Check if the name ends with the supplied suffix
-     * 
+     *
      * @param name the name to check
      * @param suffix the suffix to check
      * @return true if the name ends with the suffix
      */
     private boolean hasNameSuffix(String name, String suffix) {
-               // ensure neither arg is null
-        return name != null && suffix != null &&
-               // is longer than suffix
-               name.length() > suffix.length() && 
-               // ends with suffix
-               name.endsWith(suffix) &&  
-               // dot before the suffix
-               '.' == name.charAt(name.length() - suffix.length() - 1);
+        // ensure neither arg is null
+        return name != null
+                && suffix != null
+                &&
+                // is longer than suffix
+                name.length() > suffix.length()
+                &&
+                // ends with suffix
+                name.endsWith(suffix)
+                &&
+                // dot before the suffix
+                '.' == name.charAt(name.length() - suffix.length() - 1);
     }
 
     public String getTarget() {

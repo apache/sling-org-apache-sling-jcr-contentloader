@@ -34,73 +34,18 @@
     <name>Apache Sling JCR ContentLoader</name>
     <description>This bundle provides initial content installation through bundles.</description>
 
+    <scm>
+        <connection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-jcr-contentloader.git</connection>
+        <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-jcr-contentloader.git</developerConnection>
+        <tag>org.apache.sling.jcr.contentloader-2.4.0</tag>
+        <url>https://github.com/apache/sling-org-apache-sling-jcr-contentloader.git</url>
+    </scm>
+
     <properties>
         <sling.java.version>8</sling.java.version>
         <org.ops4j.pax.exam.version>4.13.3</org.ops4j.pax.exam.version>
         <project.build.outputTimestamp>2023-02-08T14:54:21Z</project.build.outputTimestamp>
     </properties>
-
-    <scm>
-        <connection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-jcr-contentloader.git</connection>
-        <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-jcr-contentloader.git
-    </developerConnection>
-        <url>https://github.com/apache/sling-org-apache-sling-jcr-contentloader.git</url>
-        <tag>org.apache.sling.jcr.contentloader-2.4.0</tag>
-    </scm>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>src/test/**/*.json</exclude>
-                        <exclude>src/test/**/*.ordered-json</exclude>
-                        <exclude>src/test/**/*.xml</exclude>
-                        <exclude>src/test/**/*.txt</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <executions>
-                   <execution>
-                       <goals>
-                           <goal>integration-test</goal>
-                           <goal>verify</goal>
-                       </goals>
-                   </execution>
-               </executions>
-                <configuration>
-                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                    <systemProperties>
-                        <property>
-                            <name>bundle.filename</name>
-                            <value>${basedir}/target/${project.build.finalName}.jar</value>
-                        </property>
-                    </systemProperties>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.servicemix.tooling</groupId>
-                <artifactId>depends-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
-
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <configuration>
-                    <excludePackageNames> org.apache.sling.jcr.contentloader.internal</excludePackageNames>
-                </configuration>
-            </plugin>
-        </plugins>
-    </reporting>
 
     <dependencies>
         <!-- this dependency must come first to make sure Oak 1.40.0 is used for testing and not older versions being provided by other dependencies (oak-api, oak-security-spi) -->
@@ -110,7 +55,7 @@
             <version>3.1.2-1.40.0</version>
             <scope>test</scope>
         </dependency>
-    
+
         <!-- OSGi -->
         <dependency>
             <groupId>org.osgi</groupId>
@@ -193,10 +138,10 @@
             <scope>provided</scope>
             <optional>true</optional>
             <exclusions>
-              <exclusion>
-                <groupId>*</groupId>
-                <artifactId>*</artifactId>
-              </exclusion>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -414,5 +359,59 @@
         </dependency>
         <!-- END testing dependencies -->
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>src/test/**/*.json</exclude>
+                        <exclude>src/test/**/*.ordered-json</exclude>
+                        <exclude>src/test/**/*.xml</exclude>
+                        <exclude>src/test/**/*.txt</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <systemProperties>
+                        <property>
+                            <name>bundle.filename</name>
+                            <value>${basedir}/target/${project.build.finalName}.jar</value>
+                        </property>
+                    </systemProperties>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.servicemix.tooling</groupId>
+                <artifactId>depends-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <excludePackageNames>org.apache.sling.jcr.contentloader.internal</excludePackageNames>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
 
 </project>

@@ -28,5 +28,4 @@ class ContentReaderUnavailableException extends Exception {
     public ContentReaderUnavailableException(String message) {
         super(message);
     }
-
 }

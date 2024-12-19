@@ -33,22 +33,31 @@ public class OrderedJsonReaderTest extends JsonReaderTest {
         this.jsonReader = new OrderedJsonReader();
     }
 
-    @org.junit.Test public void testTwoOrderedChildren() throws Exception {
-        String json = "{ " +
-                " \"SLING:ordered\" : [" +
-                        "{ \"SLING:name\": \"c1\"}," +
-                        "{ \"SLING:name\": \"c2\"}" +
-                    "]" +
-                "}";
-        this.mockery.checking(new Expectations() {{
-            allowing(creator).createNode(null, null, null); inSequence(mySequence);
-            allowing(creator).createNode("c1", null, null); inSequence(mySequence);
-            allowing(creator).finishNode(); inSequence(mySequence);
-            allowing(creator).createNode("c2", null, null); inSequence(mySequence);
-            allowing(creator).finishNode(); inSequence(mySequence);
-            allowing(creator).finishNode(); inSequence(mySequence);
-            allowing(creator).finish(); inSequence(mySequence);
-        }});
+    @org.junit.Test
+    public void testTwoOrderedChildren() throws Exception {
+        String json = "{ " + " \"SLING:ordered\" : ["
+                + "{ \"SLING:name\": \"c1\"},"
+                + "{ \"SLING:name\": \"c2\"}"
+                + "]"
+                + "}";
+        this.mockery.checking(new Expectations() {
+            {
+                allowing(creator).createNode(null, null, null);
+                inSequence(mySequence);
+                allowing(creator).createNode("c1", null, null);
+                inSequence(mySequence);
+                allowing(creator).finishNode();
+                inSequence(mySequence);
+                allowing(creator).createNode("c2", null, null);
+                inSequence(mySequence);
+                allowing(creator).finishNode();
+                inSequence(mySequence);
+                allowing(creator).finishNode();
+                inSequence(mySequence);
+                allowing(creator).finish();
+                inSequence(mySequence);
+            }
+        });
         this.parse(json);
     }
 }

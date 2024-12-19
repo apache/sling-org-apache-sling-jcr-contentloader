@@ -18,12 +18,9 @@
  */
 package org.apache.sling.jcr.contentloader.internal.hc;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import javax.jcr.Session;
 
 import java.lang.annotation.Annotation;
-
-import javax.jcr.Session;
 
 import org.apache.felix.hc.api.Result;
 import org.apache.sling.jcr.contentloader.hc.BundleContentLoadedCheck;
@@ -48,10 +45,14 @@ import org.junit.Test;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 public class BundleContentLoadedCheckTest {
 
     @Rule
     public final SlingContext context = new SlingContext(ResourceResolverType.JCR_OAK);
+
     private MockBundle bundle;
     private Mockery mock = new Mockery();
     private BundleContentLoader contentLoader;
@@ -81,7 +82,7 @@ public class BundleContentLoadedCheckTest {
         mock.checking(new Expectations() {
             {
                 oneOf(bundleContext).getBundles();
-                will(returnValue(new Bundle[] { bundle }));
+                will(returnValue(new Bundle[] {bundle}));
             }
         });
         check = context.registerInjectActivateService(new BundleContentLoadedCheck());
@@ -99,7 +100,7 @@ public class BundleContentLoadedCheckTest {
 
             @Override
             public String[] hc_tags() {
-                return new String[] { "test" };
+                return new String[] {"test"};
             }
 
             @Override
@@ -121,7 +122,6 @@ public class BundleContentLoadedCheckTest {
             public String webconsole_configurationFactory_nameHint() {
                 return null;
             }
-
         });
     }
 
@@ -137,5 +137,4 @@ public class BundleContentLoadedCheckTest {
         Result result = check.execute();
         assertTrue(result.isOk());
     }
-
 }

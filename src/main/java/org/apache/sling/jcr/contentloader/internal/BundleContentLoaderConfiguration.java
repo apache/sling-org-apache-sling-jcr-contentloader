@@ -21,11 +21,14 @@ package org.apache.sling.jcr.contentloader.internal;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
-@ObjectClassDefinition(name = "%contentloader.config.name", description = "%contentloader.config.description", localization = "OSGI-INF/l10n/bundle")
+@ObjectClassDefinition(
+        name = "%contentloader.config.name",
+        description = "%contentloader.config.description",
+        localization = "OSGI-INF/l10n/bundle")
 public @interface BundleContentLoaderConfiguration {
 
     @AttributeDefinition(name = "%includedTargets.name", description = "%includedTargets.description")
-    String[] includedTargets() default { "^\\/.*$" };
+    String[] includedTargets() default {"^\\/.*$"};
 
     @AttributeDefinition(name = "%excludedTargets.name", description = "%excludedTargets.description")
     String[] excludedTargets() default {};

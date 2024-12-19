@@ -18,7 +18,12 @@
  */
 package org.apache.sling.jcr.contentloader.internal.readers;
 
-import static org.apache.sling.jcr.contentparser.impl.JsonTicksConverter.tickToDoubleQuote;
+import javax.jcr.Node;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import javax.jcr.ValueFormatException;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -36,12 +41,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import javax.jcr.Node;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-import javax.jcr.ValueFormatException;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonException;
@@ -50,7 +49,6 @@ import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 import jakarta.json.JsonValue.ValueType;
-
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositeRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -65,6 +63,8 @@ import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.annotations.Component;
+
+import static org.apache.sling.jcr.contentparser.impl.JsonTicksConverter.tickToDoubleQuote;
 
 /**
  * The <code>JsonReader</code> Parses a Json document on content load and
@@ -115,8 +115,13 @@ import org.osgi.service.component.annotations.Component;
  *
  * </pre>
  */
-@Component(service = ContentReader.class, property = { Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
-        ContentReader.PROPERTY_EXTENSIONS + "=json", ContentReader.PROPERTY_TYPES + "=application/json" })
+@Component(
+        service = ContentReader.class,
+        property = {
+            Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
+            ContentReader.PROPERTY_EXTENSIONS + "=json",
+            ContentReader.PROPERTY_TYPES + "=application/json"
+        })
 public class JsonReader implements ContentReader {
 
     private static final Pattern jsonDate = Pattern.compile(
@@ -127,6 +132,7 @@ public class JsonReader implements ContentReader {
     private static final String URI = "jcr:uri:";
 
     protected static final Set<String> ignoredNames = new HashSet<>();
+
     static {
         ignoredNames.add("jcr:primaryType");
         ignoredNames.add("jcr:mixinTypes");
@@ -139,6 +145,7 @@ public class JsonReader implements ContentReader {
     }
 
     private static final Set<String> ignoredPrincipalPropertyNames = new HashSet<>();
+
     static {
         ignoredPrincipalPropertyNames.add("name");
         ignoredPrincipalPropertyNames.add("isgroup");
@@ -146,6 +153,7 @@ public class JsonReader implements ContentReader {
         ignoredPrincipalPropertyNames.add("dynamic");
         ignoredPrincipalPropertyNames.add("password");
     }
+
     private static final String SECURITY_PRINCIPLES = "security:principals";
     private static final String SECURITY_ACL = "security:acl";
 
@@ -178,7 +186,8 @@ public class JsonReader implements ContentReader {
         }
         Map<String, Object> config = new HashMap<>();
         config.put("org.apache.johnzon.supports-comments", true);
-        try (jakarta.json.JsonReader reader = Json.createReaderFactory(config).createReader(new StringReader(tickToDoubleQuote(jsonString)))) {
+        try (jakarta.json.JsonReader reader =
+                Json.createReaderFactory(config).createReader(new StringReader(tickToDoubleQuote(jsonString)))) {
             JsonObject json = reader.readObject();
             this.createNode(null, json, contentCreator);
             contentCreator.finish();
@@ -262,22 +271,22 @@ public class JsonReader implements ContentReader {
     private Object unbox(Object o) {
         if (o instanceof JsonValue) {
             switch (((JsonValue) o).getValueType()) {
-            case FALSE:
-                return false;
-            case TRUE:
-                return true;
-            case NULL:
-                return null;
-            case NUMBER:
-                if (((JsonNumber) o).isIntegral()) {
-                    return Long.valueOf(((JsonNumber) o).longValue());
-                } else {
-                    return Double.valueOf(((JsonNumber) o).doubleValue());
-                }
-            case STRING:
-                return ((JsonString) o).getString();
-            default:
-                return o;
+                case FALSE:
+                    return false;
+                case TRUE:
+                    return true;
+                case NULL:
+                    return null;
+                case NUMBER:
+                    if (((JsonNumber) o).isIntegral()) {
+                        return Long.valueOf(((JsonNumber) o).longValue());
+                    } else {
+                        return Double.valueOf(((JsonNumber) o).doubleValue());
+                    }
+                case STRING:
+                    return ((JsonString) o).getString();
+                default:
+                    return o;
             }
         }
         return o;
@@ -294,16 +303,11 @@ public class JsonReader implements ContentReader {
         } else if (object instanceof Boolean) {
             return PropertyType.BOOLEAN;
         } else if (object instanceof String) {
-            if (name.startsWith(REFERENCE))
-                return PropertyType.REFERENCE;
-            if (name.startsWith(PATH))
-                return PropertyType.PATH;
-            if (name.startsWith(NAME))
-                return PropertyType.NAME;
-            if (name.startsWith(URI))
-                return PropertyType.URI;
-            if (jsonDate.matcher((String) object).matches())
-                return PropertyType.DATE;
+            if (name.startsWith(REFERENCE)) return PropertyType.REFERENCE;
+            if (name.startsWith(PATH)) return PropertyType.PATH;
+            if (name.startsWith(NAME)) return PropertyType.NAME;
+            if (name.startsWith(URI)) return PropertyType.URI;
+            if (jsonDate.matcher((String) object).matches()) return PropertyType.DATE;
         }
 
         // fall back to default
@@ -311,14 +315,10 @@ public class JsonReader implements ContentReader {
     }
 
     private String getName(String name) {
-        if (name.startsWith(REFERENCE))
-            return name.substring(REFERENCE.length());
-        if (name.startsWith(PATH))
-            return name.substring(PATH.length());
-        if (name.startsWith(NAME))
-            return name.substring(NAME.length());
-        if (name.startsWith(URI))
-            return name.substring(URI.length());
+        if (name.startsWith(REFERENCE)) return name.substring(REFERENCE.length());
+        if (name.startsWith(PATH)) return name.substring(PATH.length());
+        if (name.startsWith(NAME)) return name.substring(NAME.length());
+        if (name.startsWith(URI)) return name.substring(URI.length());
         return name;
     }
 
@@ -366,7 +366,7 @@ public class JsonReader implements ContentReader {
      *     ],
      *  }
      *  </code>
-     * 
+     *
      * @param obj
      *            Object
      * @param contentCreator
@@ -386,7 +386,8 @@ public class JsonReader implements ContentReader {
                 if (object instanceof JsonObject) {
                     createPrincipal((JsonObject) object, contentCreator);
                 } else {
-                    throw new JsonException("Unexpected data type in principals array: " + object.getClass().getName());
+                    throw new JsonException("Unexpected data type in principals array: "
+                            + object.getClass().getName());
                 }
             }
         }
@@ -464,7 +465,8 @@ public class JsonReader implements ContentReader {
                 if (object instanceof JsonObject) {
                     createAce((JsonObject) object, contentCreator);
                 } else {
-                    throw new JsonException("Unexpected data type in acl array: " + object.getClass().getName());
+                    throw new JsonException("Unexpected data type in acl array: "
+                            + object.getClass().getName());
                 }
             }
         }
@@ -494,13 +496,14 @@ public class JsonReader implements ContentReader {
             JsonValue restrictions = ace.get("restrictions");
             Set<LocalRestriction> restrictionsSet = Collections.emptySet();
             if (restrictions instanceof JsonObject) {
-                restrictionsSet = toLocalRestrictions((JsonObject)restrictions, srMap, vf);
+                restrictionsSet = toLocalRestrictions((JsonObject) restrictions, srMap, vf);
             }
 
             if (granted != null) {
                 for (int a = 0; a < granted.size(); a++) {
                     String privilegeName = granted.getString(a);
-                    LocalPrivilege lp = privilegeToLocalPrivilegesMap.computeIfAbsent(privilegeName, LocalPrivilege::new);
+                    LocalPrivilege lp =
+                            privilegeToLocalPrivilegesMap.computeIfAbsent(privilegeName, LocalPrivilege::new);
                     lp.setAllow(true);
                     lp.setAllowRestrictions(restrictionsSet);
                 }
@@ -509,7 +512,8 @@ public class JsonReader implements ContentReader {
             if (denied != null) {
                 for (int a = 0; a < denied.size(); a++) {
                     String privilegeName = denied.getString(a);
-                    LocalPrivilege lp = privilegeToLocalPrivilegesMap.computeIfAbsent(privilegeName, LocalPrivilege::new);
+                    LocalPrivilege lp =
+                            privilegeToLocalPrivilegesMap.computeIfAbsent(privilegeName, LocalPrivilege::new);
                     lp.setDeny(true);
                     lp.setDenyRestrictions(restrictionsSet);
                 }
@@ -519,34 +523,35 @@ public class JsonReader implements ContentReader {
         // now process the newer syntax
         JsonValue privileges = ace.get("privileges");
         if (privileges instanceof JsonObject) {
-            JsonObject privilegesObj = (JsonObject)privileges;
+            JsonObject privilegesObj = (JsonObject) privileges;
             for (Entry<String, JsonValue> entry : privilegesObj.entrySet()) {
                 String privilegeName = entry.getKey();
                 JsonValue privilegeValue = entry.getValue();
                 if (privilegeValue instanceof JsonObject) {
-                    JsonObject privilegeValueObj = (JsonObject)privilegeValue;
+                    JsonObject privilegeValueObj = (JsonObject) privilegeValue;
                     JsonValue allow = privilegeValueObj.get("allow");
                     boolean isAllow = false;
-                    Set<LocalRestriction> allowRestrictions = Collections.emptySet(); 
+                    Set<LocalRestriction> allowRestrictions = Collections.emptySet();
                     if (allow instanceof JsonObject) {
                         isAllow = true;
-                        allowRestrictions = toLocalRestrictions((JsonObject)allow, srMap, vf);
+                        allowRestrictions = toLocalRestrictions((JsonObject) allow, srMap, vf);
                     } else if (JsonValue.TRUE.equals(allow)) {
                         isAllow = true;
                     }
 
                     JsonValue deny = privilegeValueObj.get("deny");
                     boolean isDeny = false;
-                    Set<LocalRestriction> denyRestrictions = Collections.emptySet(); 
+                    Set<LocalRestriction> denyRestrictions = Collections.emptySet();
                     if (deny instanceof JsonObject) {
                         isDeny = true;
-                        denyRestrictions = toLocalRestrictions((JsonObject)deny, srMap, vf);
+                        denyRestrictions = toLocalRestrictions((JsonObject) deny, srMap, vf);
                     } else if (JsonValue.TRUE.equals(deny)) {
                         isDeny = true;
                     }
 
                     if (isAllow || isDeny) {
-                        LocalPrivilege lp = privilegeToLocalPrivilegesMap.computeIfAbsent(privilegeName, LocalPrivilege::new);
+                        LocalPrivilege lp =
+                                privilegeToLocalPrivilegesMap.computeIfAbsent(privilegeName, LocalPrivilege::new);
                         if (isAllow) {
                             lp.setAllow(true);
                             lp.setAllowRestrictions(allowRestrictions);
@@ -566,11 +571,10 @@ public class JsonReader implements ContentReader {
 
     /**
      * Calculate a map of restriction names to the restriction definition
-     * 
+     *
      * @param parentNode the node the restrictions are for
      */
-    protected Map<String, RestrictionDefinition> toSrMap(Node parentNode)
-            throws RepositoryException {
+    protected Map<String, RestrictionDefinition> toSrMap(Node parentNode) throws RepositoryException {
         // lazy initialized map for quick lookup when processing restrictions
         Map<String, RestrictionDefinition> supportedRestrictionsMap = new HashMap<>();
 
@@ -590,8 +594,8 @@ public class JsonReader implements ContentReader {
                 compositeRestrictionProvider = CompositeRestrictionProvider.newInstance(restrictionProviders);
 
                 // populate the map
-                Set<RestrictionDefinition> supportedRestrictions = compositeRestrictionProvider
-                        .getSupportedRestrictions(parentNode.getPath());
+                Set<RestrictionDefinition> supportedRestrictions =
+                        compositeRestrictionProvider.getSupportedRestrictions(parentNode.getPath());
                 for (RestrictionDefinition restrictionDefinition : supportedRestrictions) {
                     supportedRestrictionsMap.put(restrictionDefinition.getName(), restrictionDefinition);
                 }
@@ -610,14 +614,14 @@ public class JsonReader implements ContentReader {
 
     /**
      * Construct a LocalRestriction using data from the json object
-     * 
+     *
      * @param allowOrDenyObj the json object
      * @param srMap map of restriction names to the restriction definition
      * @param vf the ValueFactory
      */
-    protected Set<LocalRestriction> toLocalRestrictions(JsonObject allowOrDenyObj,
-            Map<String, RestrictionDefinition> srMap,
-            ValueFactory vf) throws RepositoryException {
+    protected Set<LocalRestriction> toLocalRestrictions(
+            JsonObject allowOrDenyObj, Map<String, RestrictionDefinition> srMap, ValueFactory vf)
+            throws RepositoryException {
         Set<LocalRestriction> restrictions = new HashSet<>();
         for (Entry<String, JsonValue> restrictionEntry : allowOrDenyObj.entrySet()) {
             String restrictionName = restrictionEntry.getKey();
@@ -644,7 +648,7 @@ public class JsonReader implements ContentReader {
                     lr = new LocalRestriction(restrictionName, values);
                 } else {
                     Value v = toValue(vf, jsonValue, restrictionType);
-                    lr = new LocalRestriction(restrictionName, new Value[] { v });
+                    lr = new LocalRestriction(restrictionName, new Value[] {v});
                 }
             } else {
                 if (jsonValue.getValueType() == ValueType.ARRAY) {
@@ -672,7 +676,7 @@ public class JsonReader implements ContentReader {
 
     /**
      * Attempt to convert the JsonValue to the equivalent JCR Value object
-     * 
+     *
      * @param factory
      *            the JCR value factory
      * @param jsonValue
@@ -686,29 +690,29 @@ public class JsonReader implements ContentReader {
         Value value = null;
         ValueType valueType = jsonValue.getValueType();
         switch (valueType) {
-        case TRUE:
-            value = factory.createValue(false);
-            break;
-        case FALSE:
-            value = factory.createValue(false);
-            break;
-        case NUMBER:
-            JsonNumber jsonNumber = (JsonNumber) jsonValue;
-            if (jsonNumber.isIntegral()) {
-                value = factory.createValue(jsonNumber.longValue());
-            } else {
-                value = factory.createValue(jsonNumber.doubleValue());
-            }
-            break;
-        case STRING:
-            value = factory.createValue(((JsonString) jsonValue).getString(), restrictionType);
-            break;
-        case NULL:
-        case ARRAY:
-        case OBJECT:
-        default:
-            // illegal JSON?
-            break;
+            case TRUE:
+                value = factory.createValue(false);
+                break;
+            case FALSE:
+                value = factory.createValue(false);
+                break;
+            case NUMBER:
+                JsonNumber jsonNumber = (JsonNumber) jsonValue;
+                if (jsonNumber.isIntegral()) {
+                    value = factory.createValue(jsonNumber.longValue());
+                } else {
+                    value = factory.createValue(jsonNumber.doubleValue());
+                }
+                break;
+            case STRING:
+                value = factory.createValue(((JsonString) jsonValue).getString(), restrictionType);
+                break;
+            case NULL:
+            case ARRAY:
+            case OBJECT:
+            default:
+                // illegal JSON?
+                break;
         }
 
         return value;

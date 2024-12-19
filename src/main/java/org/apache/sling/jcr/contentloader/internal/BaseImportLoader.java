@@ -38,8 +38,7 @@ public abstract class BaseImportLoader extends JcrXmlImporter {
     protected ContentReaderWhiteboard contentReaderWhiteboard;
 
     // This constructor is meant to be used by the OSGi
-    protected BaseImportLoader() {
-    }
+    protected BaseImportLoader() {}
 
     // This constructor is meant to be used by non-OSGi
     protected BaseImportLoader(ContentReaderWhiteboard contentReaderWhiteboard) {
@@ -49,7 +48,8 @@ public abstract class BaseImportLoader extends JcrXmlImporter {
     public Map<String, ContentReader> getContentReaders() {
         Map<String, ContentReader> readers = new LinkedHashMap<>();
         readers.put(EXT_JCR_XML, null);
-        for (Entry<String, ContentReader> e : contentReaderWhiteboard.getReadersByExtension().entrySet()) {
+        for (Entry<String, ContentReader> e :
+                contentReaderWhiteboard.getReadersByExtension().entrySet()) {
             readers.put('.' + e.getKey(), e.getValue());
         }
         return readers;

@@ -18,6 +18,13 @@
  */
 package org.apache.sling.jcr.contentloader.internal;
 
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Value;
+import javax.jcr.lock.LockException;
+import javax.jcr.lock.LockManager;
+
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,13 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
-
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Value;
-import javax.jcr.lock.LockException;
-import javax.jcr.lock.LockManager;
 
 import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.jcr.api.SlingRepository;
@@ -61,11 +61,17 @@ import org.slf4j.LoggerFactory;
  * </ul>
  *
  */
-@Component(service = {BundleHelper.class}, property = { Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
-        Constants.SERVICE_DESCRIPTION
-                + "=Apache Sling Content Loader Implementation" }, immediate = true, configurationPolicy = ConfigurationPolicy.OPTIONAL)
+@Component(
+        service = {BundleHelper.class},
+        property = {
+            Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
+            Constants.SERVICE_DESCRIPTION + "=Apache Sling Content Loader Implementation"
+        },
+        immediate = true,
+        configurationPolicy = ConfigurationPolicy.OPTIONAL)
 @Designate(ocd = BundleContentLoaderConfiguration.class, factory = false)
-public class BundleContentLoaderListener implements SynchronousBundleListener, BundleHelper, ContentReaderWhiteboardListener {
+public class BundleContentLoaderListener
+        implements SynchronousBundleListener, BundleHelper, ContentReaderWhiteboardListener {
 
     public static final String PROPERTY_CONTENT_LOADED = "content-loaded";
     public static final String PROPERTY_CONTENT_LOADED_AT = "content-load-time";
@@ -127,10 +133,13 @@ public class BundleContentLoaderListener implements SynchronousBundleListener, B
     // SLING-11189: ensure all built-in content readers are registered before processing any bundle in this listener
     @Reference(target = "(component.name=org.apache.sling.jcr.contentloader.internal.readers.JsonReader)")
     private ContentReader mandatoryContentReader1;
+
     @Reference(target = "(component.name=org.apache.sling.jcr.contentloader.internal.readers.OrderedJsonReader)")
     private ContentReader mandatoryContentReader2;
+
     @Reference(target = "(component.name=org.apache.sling.jcr.contentloader.internal.readers.XmlReader)")
     private ContentReader mandatoryContentReader3;
+
     @Reference(target = "(component.name=org.apache.sling.jcr.contentloader.internal.readers.ZipReader)")
     private ContentReader mandatoryContentReader4;
 
@@ -189,8 +198,10 @@ public class BundleContentLoaderListener implements SynchronousBundleListener, B
                     isUpdate = this.updatedBundles.remove(bundle.getSymbolicName());
                     bundleContentLoader.registerBundle(session, bundle, isUpdate);
                 } catch (Exception t) {
-                    log.error("bundleChanged: Problem loading initial content of bundle " + bundle.getSymbolicName()
-                            + " (" + bundle.getBundleId() + ")", t);
+                    log.error(
+                            "bundleChanged: Problem loading initial content of bundle " + bundle.getSymbolicName()
+                                    + " (" + bundle.getBundleId() + ")",
+                            t);
                 } finally {
                     this.ungetSession(session);
                 }
@@ -205,8 +216,10 @@ public class BundleContentLoaderListener implements SynchronousBundleListener, B
                     session = this.getSession();
                     bundleContentLoader.unregisterBundle(session, bundle);
                 } catch (Exception t) {
-                    log.error("bundleChanged: Problem unloading initial content of bundle " + bundle.getSymbolicName()
-                            + " (" + bundle.getBundleId() + ")", t);
+                    log.error(
+                            "bundleChanged: Problem unloading initial content of bundle " + bundle.getSymbolicName()
+                                    + " (" + bundle.getBundleId() + ")",
+                            t);
                 } finally {
                     this.ungetSession(session);
                 }
@@ -281,15 +294,18 @@ public class BundleContentLoaderListener implements SynchronousBundleListener, B
                 } else {
                     ignored++;
                 }
-
             }
 
-            log.debug("Out of {} bundles, {} were not in a suitable state for initial content loading", bundles.length,
+            log.debug(
+                    "Out of {} bundles, {} were not in a suitable state for initial content loading",
+                    bundles.length,
                     ignored);
 
         } catch (Exception t) {
-            log.error("activate: Problem while loading initial content and"
-                    + " registering mappings for existing bundles", t);
+            log.error(
+                    "activate: Problem while loading initial content and"
+                            + " registering mappings for existing bundles",
+                    t);
         } finally {
             this.ungetSession(session);
         }
@@ -299,8 +315,10 @@ public class BundleContentLoaderListener implements SynchronousBundleListener, B
         try {
             bundleContentLoader.registerBundle(session, bundle, false);
         } catch (Exception t) {
-            log.error("Problem loading initial content of bundle " + bundle.getSymbolicName() + " ("
-                    + bundle.getBundleId() + ")", t);
+            log.error(
+                    "Problem loading initial content of bundle " + bundle.getSymbolicName() + " ("
+                            + bundle.getBundleId() + ")",
+                    t);
         } finally {
             if (session.hasPendingChanges()) {
                 session.refresh(false);
@@ -359,15 +377,15 @@ public class BundleContentLoaderListener implements SynchronousBundleListener, B
 
     /**
      * Return the bundle content info and make an exclusive lock.
-     * 
+     *
      * @param session
      * @param bundle
      * @return The map of bundle content info or null.
      * @throws RepositoryException
      */
     @Override
-    public @Nullable Map<String, Object> getBundleContentInfo(final Session session, final Bundle bundle, boolean create)
-            throws RepositoryException {
+    public @Nullable Map<String, Object> getBundleContentInfo(
+            final Session session, final Bundle bundle, boolean create) throws RepositoryException {
         final String nodeName = bundle.getSymbolicName();
         final Node parentNode = (Node) session.getItem(BUNDLE_CONTENT_NODE);
         if (!parentNode.hasNode(nodeName)) {
@@ -386,30 +404,40 @@ public class BundleContentLoaderListener implements SynchronousBundleListener, B
         }
         final Node bcNode = parentNode.getNode(nodeName);
         if (bcNode.isLocked()) {
-            this.log.debug("Node {}/{} is currently locked, unable to get BundleContentInfo.", BUNDLE_CONTENT_NODE, nodeName);
+            this.log.debug(
+                    "Node {}/{} is currently locked, unable to get BundleContentInfo.", BUNDLE_CONTENT_NODE, nodeName);
             return null;
         }
         try {
             LockManager lockManager = session.getWorkspace().getLockManager();
-            lockManager.lock(bcNode.getPath(), false, // isDeep
+            lockManager.lock(
+                    bcNode.getPath(),
+                    false, // isDeep
                     true, // isSessionScoped
                     Long.MAX_VALUE, // timeoutHint
                     null); // ownerInfo
         } catch (LockException le) {
-            this.log.debug("Unable to lock node {}/{}, unable to get BundleContentInfo.", BUNDLE_CONTENT_NODE, nodeName, le);
+            this.log.debug(
+                    "Unable to lock node {}/{}, unable to get BundleContentInfo.", BUNDLE_CONTENT_NODE, nodeName, le);
             return null;
         }
         final Map<String, Object> info = new HashMap<>();
         if (bcNode.hasProperty(PROPERTY_CONTENT_LOADED_AT)) {
-            info.put(PROPERTY_CONTENT_LOADED_AT, bcNode.getProperty(PROPERTY_CONTENT_LOADED_AT).getDate());
+            info.put(
+                    PROPERTY_CONTENT_LOADED_AT,
+                    bcNode.getProperty(PROPERTY_CONTENT_LOADED_AT).getDate());
         }
         if (bcNode.hasProperty(PROPERTY_CONTENT_LOADED)) {
-            info.put(PROPERTY_CONTENT_LOADED, bcNode.getProperty(PROPERTY_CONTENT_LOADED).getBoolean());
+            info.put(
+                    PROPERTY_CONTENT_LOADED,
+                    bcNode.getProperty(PROPERTY_CONTENT_LOADED).getBoolean());
         } else {
             info.put(PROPERTY_CONTENT_LOADED, false);
         }
         if (bcNode.hasProperty(PROPERTY_CONTENT_LOADED_BY)) {
-            info.put(PROPERTY_CONTENT_LOADED_BY, bcNode.getProperty(PROPERTY_CONTENT_LOADED_BY).getString());
+            info.put(
+                    PROPERTY_CONTENT_LOADED_BY,
+                    bcNode.getProperty(PROPERTY_CONTENT_LOADED_BY).getString());
         }
         if (bcNode.hasProperty(PROPERTY_UNINSTALL_PATHS)) {
             final Value[] values = bcNode.getProperty(PROPERTY_UNINSTALL_PATHS).getValues();
@@ -423,8 +451,9 @@ public class BundleContentLoaderListener implements SynchronousBundleListener, B
     }
 
     @Override
-    public void unlockBundleContentInfo(final Session session, final Bundle bundle, final boolean contentLoaded,
-            final List<String> createdNodes) throws RepositoryException {
+    public void unlockBundleContentInfo(
+            final Session session, final Bundle bundle, final boolean contentLoaded, final List<String> createdNodes)
+            throws RepositoryException {
         final String nodeName = bundle.getSymbolicName();
         final Node parentNode = (Node) session.getItem(BUNDLE_CONTENT_NODE);
         final Node bcNode = parentNode.getNode(nodeName);

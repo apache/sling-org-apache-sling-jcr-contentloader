@@ -18,19 +18,14 @@
  */
 package org.apache.sling.jcr.contentloader.it;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.ops4j.pax.exam.CoreOptions.options;
-import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfiguration;
-
-import java.io.IOException;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeType;
 
+import java.io.IOException;
+
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Multimap;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,8 +36,12 @@ import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.osgi.framework.Bundle;
 
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.Multimap;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.ops4j.pax.exam.CoreOptions.options;
+import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfiguration;
 
 /**
  * Basic test of a bundle that provides I18N initial content
@@ -55,19 +54,14 @@ public class I18nInitialContentIT extends ContentloaderTestSupport {
     public Option[] configuration() throws IOException {
         final String header = DEFAULT_PATH_IN_BUNDLE + ";ignoreImportProviders:=json;path:=" + CONTENT_ROOT_PATH;
         final Multimap<String, String> content = ImmutableListMultimap.of(
-            DEFAULT_PATH_IN_BUNDLE, "i18n/en.json",
-            DEFAULT_PATH_IN_BUNDLE, "i18n/en.json.xml"
-        );
+                DEFAULT_PATH_IN_BUNDLE, "i18n/en.json",
+                DEFAULT_PATH_IN_BUNDLE, "i18n/en.json.xml");
         final Option bundle = buildInitialContentBundle(header, content);
         // configure the health check component
         Option hcConfig = factoryConfiguration("org.apache.sling.jcr.contentloader.hc.BundleContentLoadedCheck")
-            .put("hc.tags", new String[] {TAG_TESTING_CONTENT_LOADING})
-            .asOption();
-        return options(
-            baseConfiguration(),
-            hcConfig,
-            bundle
-        );
+                .put("hc.tags", new String[] {TAG_TESTING_CONTENT_LOADING})
+                .asOption();
+        return options(baseConfiguration(), hcConfig, bundle);
     }
 
     /* (non-Javadoc)
@@ -77,10 +71,10 @@ public class I18nInitialContentIT extends ContentloaderTestSupport {
     @Override
     public void setup() throws Exception {
         super.setup();
-        
+
         waitForContentLoaded();
     }
-    
+
     @Test
     public void bundleStarted() {
         final Bundle b = findBundle(BUNDLE_SYMBOLICNAME);
@@ -93,7 +87,10 @@ public class I18nInitialContentIT extends ContentloaderTestSupport {
         final String filePath = CONTENT_ROOT_PATH + "/i18n/en.json";
         assertTrue("file node " + filePath + " exists", session.itemExists(filePath));
         Node node = session.getNode(filePath);
-        assertEquals("file has node type 'nt:file'", "nt:file", node.getPrimaryNodeType().getName());
+        assertEquals(
+                "file has node type 'nt:file'",
+                "nt:file",
+                node.getPrimaryNodeType().getName());
 
         boolean mixLanguageFound = false;
         for (NodeType mixin : node.getMixinNodeTypes()) {
@@ -102,10 +99,10 @@ public class I18nInitialContentIT extends ContentloaderTestSupport {
             }
         }
         assertTrue("file has mixin 'mix:language'", mixLanguageFound);
-        assertEquals("file has property 'en'", "en", node.getProperty("jcr:language").getString());
+        assertEquals(
+                "file has property 'en'", "en", node.getProperty("jcr:language").getString());
 
         final String descriptorPath = CONTENT_ROOT_PATH + "/i18n/en.json.xml";
         assertFalse("descriptor " + descriptorPath + " does not exists", session.itemExists(descriptorPath));
     }
-
 }

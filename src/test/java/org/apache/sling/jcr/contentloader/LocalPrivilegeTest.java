@@ -1,36 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.contentloader;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -42,6 +38,12 @@ import org.apache.sling.testing.mock.sling.junit.SlingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  *
@@ -96,7 +98,7 @@ public class LocalPrivilegeTest {
 
     /**
      * Test method for {@link org.apache.sling.jcr.contentloader.LocalPrivilege#checkPrivilege(javax.jcr.security.AccessControlManager)}.
-     * @throws RepositoryException 
+     * @throws RepositoryException
      */
     @Test
     public void testCheckPrivilege() throws RepositoryException {
@@ -107,7 +109,7 @@ public class LocalPrivilegeTest {
 
     /**
      * Test method for {@link org.apache.sling.jcr.contentloader.LocalPrivilege#getPrivilege()}.
-     * @throws RepositoryException 
+     * @throws RepositoryException
      */
     @Test
     public void testGetPrivilege() throws RepositoryException {
@@ -291,12 +293,14 @@ public class LocalPrivilegeTest {
         assertNotEquals(lp10, lp11);
 
         LocalPrivilege lp12 = new LocalPrivilege(PrivilegeConstants.JCR_READ);
-        lp12.setAllowRestrictions(new HashSet<>(Arrays.asList(new LocalRestriction(AccessControlConstants.REP_GLOB, val("/hello")))));
+        lp12.setAllowRestrictions(
+                new HashSet<>(Arrays.asList(new LocalRestriction(AccessControlConstants.REP_GLOB, val("/hello")))));
         LocalPrivilege lp13 = new LocalPrivilege(PrivilegeConstants.JCR_READ);
         assertNotEquals(lp12, lp13);
 
         LocalPrivilege lp14 = new LocalPrivilege(PrivilegeConstants.JCR_READ);
-        lp14.setDenyRestrictions(new HashSet<>(Arrays.asList(new LocalRestriction(AccessControlConstants.REP_GLOB, val("/hello")))));
+        lp14.setDenyRestrictions(
+                new HashSet<>(Arrays.asList(new LocalRestriction(AccessControlConstants.REP_GLOB, val("/hello")))));
         LocalPrivilege lp15 = new LocalPrivilege(PrivilegeConstants.JCR_READ);
         assertNotEquals(lp14, lp15);
 
@@ -324,5 +328,4 @@ public class LocalPrivilegeTest {
         lp25.setDenyRestrictions(null);
         assertEquals(lp24, lp25);
     }
-
 }

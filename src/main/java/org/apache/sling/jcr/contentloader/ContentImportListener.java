@@ -31,72 +31,72 @@ public interface ContentImportListener {
     /**
      * Content has been updated. The source path provides the path of
      * the modified Item.
-     * 
+     *
      * @param srcPath the path that was modified
      */
-	void onModify(String srcPath);
+    void onModify(String srcPath);
 
     /**
      * An Item has been deleted. The source path provides the path of the
      * deleted Item.
-     * 
+     *
      * @param srcPath the path that was deleted
      */
-	void onDelete(String srcPath);
+    void onDelete(String srcPath);
 
     /**
      * An Item has been moved to a new location. The source provides the
      * original path of the Item, the destination provides the new path of the
      * Item.
-     * 
+     *
      * @param srcPath the path that was moved
      * @param destPath the path to which the node was moved
      */
-	void onMove(String srcPath, String destPath);
+    void onMove(String srcPath, String destPath);
 
     /**
      * An Item has been copied to a new location. The source path provides the
      * path of the copied Item, the destination path provides the path of the
      * new Item.
-     * 
+     *
      * @param srcPath the path that was copied
      * @param destPath the path to which the node was copied
      */
-	void onCopy(String srcPath, String destPath);
+    void onCopy(String srcPath, String destPath);
 
     /**
      * A Node has been created. The source path provides the path of the newly
      * created Node.
-     * 
+     *
      * @param srcPath the path that was created
      */
-	void onCreate(String srcPath);
+    void onCreate(String srcPath);
 
     /**
      * A child Node has been reordered. The orderedPath provides the path of the
      * node, which has been reordered. ThebeforeSibbling provides the name of
      * the sibling node before which the source Node has been ordered.
-     * 
+     *
      * @param orderedPath the path of the node which has been reodered
      * @param beforeSibbling the name of the sibling the node was ordered before
      */
-	void onReorder(String orderedPath, String beforeSibbling);
+    void onReorder(String orderedPath, String beforeSibbling);
 
     /**
      * A versionable Node has been checked in. The source path provides the path of the
      * newly checked in Node.
-     * 
+     *
      * @param srcPath the path that was checked in
      * @since 2.1.4
      */
-	void onCheckin(String srcPath);
+    void onCheckin(String srcPath);
 
-	/**
+    /**
      * A versionable Node has been checked out. The source path provides the path of the
      * newly checked out Node.
-     * 
+     *
      * @param srcPath the path that was checked out
      * @since 2.1.4
      */
-	void onCheckout(String srcPath);
+    void onCheckout(String srcPath);
 }

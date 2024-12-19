@@ -18,13 +18,13 @@
  */
 package org.apache.sling.jcr.contentloader.internal;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 import javax.jcr.InvalidSerializedDataException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,9 +50,11 @@ public class JcrXmlImporter {
      * @return <code>true</code> if the import succeeds, <code>false</code> if the import fails due to XML format errors.
      * @throws IOException If an IO error occurrs reading the XML file.
      */
-    protected Node importJcrXml(Node parent, String name, InputStream contentStream, boolean replace) throws IOException {
+    protected Node importJcrXml(Node parent, String name, InputStream contentStream, boolean replace)
+            throws IOException {
         try {
-            final String nodeName = (name.endsWith(EXT_JCR_XML)) ? name.substring(0, name.length() - EXT_JCR_XML.length()) : name;
+            final String nodeName =
+                    (name.endsWith(EXT_JCR_XML)) ? name.substring(0, name.length() - EXT_JCR_XML.length()) : name;
 
             // ensure the name is not empty
             if (nodeName.length() == 0) {
@@ -93,5 +95,4 @@ public class JcrXmlImporter {
             return null;
         }
     }
-
 }
