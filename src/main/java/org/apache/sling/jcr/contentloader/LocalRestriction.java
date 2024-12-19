@@ -18,9 +18,9 @@
  */
 package org.apache.sling.jcr.contentloader;
 
-import java.util.Arrays;
-
 import javax.jcr.Value;
+
+import java.util.Arrays;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -87,21 +87,14 @@ public class LocalRestriction {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (getClass() != obj.getClass()) return false;
         LocalRestriction other = (LocalRestriction) obj;
-        if (multival != other.multival)
-            return false;
+        if (multival != other.multival) return false;
         if (restriction == null) {
-            if (other.restriction != null)
-                return false;
-        } else if (!restriction.equals(other.restriction))
-            return false;
+            if (other.restriction != null) return false;
+        } else if (!restriction.equals(other.restriction)) return false;
         return Arrays.equals(values, other.values);
     }
-
 }

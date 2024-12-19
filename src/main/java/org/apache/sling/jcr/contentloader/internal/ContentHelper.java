@@ -18,17 +18,15 @@
  */
 package org.apache.sling.jcr.contentloader.internal;
 
-
 /**
  * Interface to provide helpers for the ContentCreator
  *
  */
 public interface ContentHelper {
 
-	/**
-	 * Returns the MIME type from the MimeTypeService for the given name
-	 * @param name the name of the file to get the mimeType for  
-	 */
-	String getMimeType(String name);
-
+    /**
+     * Returns the MIME type from the MimeTypeService for the given name
+     * @param name the name of the file to get the mimeType for
+     */
+    String getMimeType(String name);
 }

@@ -18,14 +18,12 @@
  */
 package org.apache.sling.jcr.contentloader.it;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfiguration;
+import javax.jcr.RepositoryException;
 
 import java.io.IOException;
 
-import javax.jcr.RepositoryException;
-
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Multimap;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,8 +34,9 @@ import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.osgi.framework.Bundle;
 
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.Multimap;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfiguration;
 
 /**
  * Test the SLING-5682 ordered content loading
@@ -49,19 +48,14 @@ public class OrderedInitialContentIT extends ContentloaderTestSupport {
     @Configuration
     public Option[] configuration() throws IOException {
         final String header = DEFAULT_PATH_IN_BUNDLE + ";path:=" + CONTENT_ROOT_PATH;
-        final Multimap<String, String> content = ImmutableListMultimap.of(
-            DEFAULT_PATH_IN_BUNDLE, "ordered-content.ordered-json"
-        );
+        final Multimap<String, String> content =
+                ImmutableListMultimap.of(DEFAULT_PATH_IN_BUNDLE, "ordered-content.ordered-json");
         final Option bundle = buildInitialContentBundle(header, content);
         // configure the health check component
         Option hcConfig = factoryConfiguration("org.apache.sling.jcr.contentloader.hc.BundleContentLoadedCheck")
-            .put("hc.tags", new String[] {TAG_TESTING_CONTENT_LOADING})
-            .asOption();
-        return new Option[]{
-            baseConfiguration(),
-            hcConfig,
-            bundle
-        };
+                .put("hc.tags", new String[] {TAG_TESTING_CONTENT_LOADING})
+                .asOption();
+        return new Option[] {baseConfiguration(), hcConfig, bundle};
     }
 
     /* (non-Javadoc)
@@ -71,10 +65,10 @@ public class OrderedInitialContentIT extends ContentloaderTestSupport {
     @Override
     public void setup() throws Exception {
         super.setup();
-        
+
         waitForContentLoaded();
     }
-    
+
     @Test
     public void bundleStarted() {
         final Bundle b = findBundle(BUNDLE_SYMBOLICNAME);
@@ -87,5 +81,4 @@ public class OrderedInitialContentIT extends ContentloaderTestSupport {
         assertProperty(session, CONTENT_ROOT_PATH + "/ordered-content/first/title", "This comes first");
         assertProperty(session, CONTENT_ROOT_PATH + "/ordered-content/second/title", "This comes second");
     }
-
 }

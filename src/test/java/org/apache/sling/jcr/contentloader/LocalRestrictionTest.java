@@ -1,29 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.contentloader;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
@@ -34,6 +27,15 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Access
 import org.apache.jackrabbit.value.ValueFactoryImpl;
 import org.junit.Test;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 /**
  *
  */
@@ -42,13 +44,16 @@ public class LocalRestrictionTest {
     public static Value val(String value) throws ValueFormatException {
         return val(ValueFactoryImpl.getInstance(), PropertyType.STRING, value);
     }
+
     public static Value val(ValueFactory vf, int type, String value) throws ValueFormatException {
         return vf.createValue(value, type);
     }
-    public static Value[] vals(String ... value) throws ValueFormatException {
+
+    public static Value[] vals(String... value) throws ValueFormatException {
         return vals(ValueFactoryImpl.getInstance(), PropertyType.STRING, value);
     }
-    public static Value[] vals(ValueFactory vf, int type, String ... value) throws ValueFormatException {
+
+    public static Value[] vals(ValueFactory vf, int type, String... value) throws ValueFormatException {
         Value[] values = new Value[value.length];
         for (int i = 0; i < value.length; i++) {
             values[i] = vf.createValue(value[i], type);
@@ -68,12 +73,12 @@ public class LocalRestrictionTest {
         LocalRestriction lr3 = new LocalRestriction(AccessControlConstants.REP_GLOB, val("/hello1"));
         assertEquals(lr1.hashCode(), lr3.hashCode());
 
-        LocalRestriction lr4 = new LocalRestriction(null, (Value)null);
-        LocalRestriction lr5 = new LocalRestriction(null, (Value[])null);
+        LocalRestriction lr4 = new LocalRestriction(null, (Value) null);
+        LocalRestriction lr5 = new LocalRestriction(null, (Value[]) null);
         assertNotSame(lr4.hashCode(), lr5.hashCode());
-        LocalRestriction lr6 = new LocalRestriction(null, (Value)null);
+        LocalRestriction lr6 = new LocalRestriction(null, (Value) null);
         assertEquals(lr4.hashCode(), lr6.hashCode());
-        LocalRestriction lr7 = new LocalRestriction(null, (Value[])null);
+        LocalRestriction lr7 = new LocalRestriction(null, (Value[]) null);
         assertEquals(lr5.hashCode(), lr7.hashCode());
     }
 
@@ -106,13 +111,13 @@ public class LocalRestrictionTest {
         LocalRestriction lr1 = new LocalRestriction(AccessControlConstants.REP_GLOB, val("/hello1"));
         assertEquals(val("/hello1"), lr1.getValue());
 
-        LocalRestriction lr2 = new LocalRestriction(AccessControlConstants.REP_GLOB, (Value)null);
+        LocalRestriction lr2 = new LocalRestriction(AccessControlConstants.REP_GLOB, (Value) null);
         assertNull(lr2.getValue());
 
         LocalRestriction lr3 = new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, vals("item1", "item2"));
         assertEquals(val("item1"), lr3.getValue());
 
-        LocalRestriction lr4 = new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, (Value[])new Value[0]);
+        LocalRestriction lr4 = new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, (Value[]) new Value[0]);
         assertNull(lr4.getValue());
     }
 
@@ -124,7 +129,7 @@ public class LocalRestrictionTest {
         LocalRestriction lr1 = new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, vals("item1", "item2"));
         assertArrayEquals(vals("item1", "item2"), lr1.getValues());
 
-        LocalRestriction lr2 = new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, (Value[])null);
+        LocalRestriction lr2 = new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, (Value[]) null);
         assertNull(lr2.getValues());
 
         LocalRestriction lr3 = new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, new Value[0]);
@@ -179,5 +184,4 @@ public class LocalRestrictionTest {
         LocalRestriction lr13 = new LocalRestriction(AccessControlConstants.REP_GLOB, val("/hello2"));
         assertNotEquals(lr12, lr13);
     }
-
 }

@@ -18,17 +18,16 @@
  */
 package org.apache.sling.jcr.contentloader;
 
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-
 import org.osgi.annotation.versioning.ProviderType;
-
 
 /**
  * The <code>ContentCreator</code> is used by the {@link org.apache.sling.jcr.contentloader.ContentReader} to create the actual content.
@@ -60,14 +59,13 @@ public interface ContentCreator {
      */
     void finishNode() throws RepositoryException;
 
-    
     /**
      * Indicates that the import is finished
      *
      * @throws RepositoryException If anything goes wrong.
      */
     void finish() throws RepositoryException;
-    
+
     /**
      * Create a new property to the current node.
      *
@@ -118,7 +116,8 @@ public interface ContentCreator {
      * @param lastModified The last modified or -1
      * @throws RepositoryException If anything goes wrong.
      */
-    void createFileAndResourceNode(String name, InputStream data, String mimeType, long lastModified) throws RepositoryException;
+    void createFileAndResourceNode(String name, InputStream data, String mimeType, long lastModified)
+            throws RepositoryException;
 
     /**
      * Switch the current node to the path (which must be relative
@@ -175,7 +174,8 @@ public interface ContentCreator {
      *                          </table>
      * @throws RepositoryException If anything goes wrong.
      */
-    void createAce(String principal, String[] grantedPrivileges, String[] deniedPrivileges, String order) throws RepositoryException;
+    void createAce(String principal, String[] grantedPrivileges, String[] deniedPrivileges, String order)
+            throws RepositoryException;
 
     /**
      * Creates an Access Control Entry for the current node for the specified
@@ -201,11 +201,18 @@ public interface ContentCreator {
      * @deprecated use {@link #createAce(String, Collection, String)} instead
      */
     @Deprecated
-    default void createAce(String principal, String[] grantedPrivileges, String[] deniedPrivileges, String order, 
-            Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions, Set<String> removedRestrictionNames) throws RepositoryException {
+    default void createAce(
+            String principal,
+            String[] grantedPrivileges,
+            String[] deniedPrivileges,
+            String order,
+            Map<String, Value> restrictions,
+            Map<String, Value[]> mvRestrictions,
+            Set<String> removedRestrictionNames)
+            throws RepositoryException {
         throw new UnsupportedOperationException();
     }
-    
+
     /**
      * Creates an Access Control Entry for the current node for the specified
      * principal and privileges.
@@ -224,7 +231,8 @@ public interface ContentCreator {
      *                          </table>
      * @throws RepositoryException If anything goes wrong.
      */
-    default void createAce(String principal, Collection<LocalPrivilege> privileges, String order) throws RepositoryException {
+    default void createAce(String principal, Collection<LocalPrivilege> privileges, String order)
+            throws RepositoryException {
         throw new UnsupportedOperationException();
     }
 
@@ -235,5 +243,4 @@ public interface ContentCreator {
     default Node getParent() {
         throw new UnsupportedOperationException();
     }
-
 }

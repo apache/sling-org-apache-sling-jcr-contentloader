@@ -18,16 +18,16 @@
  */
 package org.apache.sling.jcr.contentloader.internal.readers;
 
+import javax.jcr.RepositoryException;
+
 import java.util.Map;
 
-import javax.jcr.RepositoryException;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonException;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
-
 import org.apache.sling.jcr.contentloader.ContentCreator;
 import org.apache.sling.jcr.contentloader.ContentReader;
 import org.osgi.framework.Constants;
@@ -40,12 +40,13 @@ import org.osgi.service.component.annotations.Component;
  * children, in that order.
  * Note that this is the reponsability of the json file to set appropriate node type / mixins.
  */
-@Component(service = ContentReader.class,
-property = {
-    Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
-    ContentReader.PROPERTY_EXTENSIONS + "=ordered-json",
-    ContentReader.PROPERTY_TYPES + "=application/json"
-})
+@Component(
+        service = ContentReader.class,
+        property = {
+            Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
+            ContentReader.PROPERTY_EXTENSIONS + "=ordered-json",
+            ContentReader.PROPERTY_TYPES + "=application/json"
+        })
 public class OrderedJsonReader extends JsonReader {
 
     private static final String PN_ORDEREDCHILDREN = "SLING:ordered";
@@ -53,7 +54,7 @@ public class OrderedJsonReader extends JsonReader {
 
     @Override
     protected void writeChildren(JsonObject obj, ContentCreator contentCreator) throws RepositoryException {
-        if (! obj.containsKey(PN_ORDEREDCHILDREN)) {
+        if (!obj.containsKey(PN_ORDEREDCHILDREN)) {
             super.writeChildren(obj, contentCreator);
         } else {
             for (Map.Entry<String, JsonValue> entry : obj.entrySet()) {
@@ -70,24 +71,23 @@ public class OrderedJsonReader extends JsonReader {
                                     if (oc instanceof JsonObject) {
                                         JsonObject child = (JsonObject) oc;
                                         String childName = child.getString(PN_ORDEREDCHILDNAME, null);
-                                        if (childName != null && !childName.isEmpty() ) {
+                                        if (childName != null && !childName.isEmpty()) {
                                             JsonObjectBuilder builder = Json.createObjectBuilder();
-                                            for (Map.Entry<String, JsonValue> e : child.entrySet())
-                                            {
-                                                if (!PN_ORDEREDCHILDNAME.equals(e.getKey()))
-                                                {
+                                            for (Map.Entry<String, JsonValue> e : child.entrySet()) {
+                                                if (!PN_ORDEREDCHILDNAME.equals(e.getKey())) {
                                                     builder.add(e.getKey(), e.getValue());
                                                 }
                                             }
                                             child = builder.build();
                                             this.createNode(childName, child, contentCreator);
                                         } else {
-                                            throw new JsonException(PN_ORDEREDCHILDREN + " children must have a name whose key is " + PN_ORDEREDCHILDNAME);
+                                            throw new JsonException(PN_ORDEREDCHILDREN
+                                                    + " children must have a name whose key is " + PN_ORDEREDCHILDNAME);
                                         }
                                     } else {
-                                        throw new JsonException(PN_ORDEREDCHILDREN + " array must only have JSONObject items");
+                                        throw new JsonException(
+                                                PN_ORDEREDCHILDREN + " array must only have JSONObject items");
                                     }
-
                                 }
                             } else {
                                 throw new JsonException(PN_ORDEREDCHILDREN + " value must be a JSON array");

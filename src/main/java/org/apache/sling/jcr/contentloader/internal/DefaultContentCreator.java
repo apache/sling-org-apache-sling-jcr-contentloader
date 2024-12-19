@@ -18,6 +18,26 @@
  */
 package org.apache.sling.jcr.contentloader.internal;
 
+import javax.jcr.Binary;
+import javax.jcr.Item;
+import javax.jcr.ItemNotFoundException;
+import javax.jcr.Node;
+import javax.jcr.NodeIterator;
+import javax.jcr.Property;
+import javax.jcr.PropertyIterator;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlList;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.AccessControlPolicyIterator;
+import javax.jcr.security.Privilege;
+import javax.jcr.version.VersionManager;
+
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -42,26 +62,6 @@ import java.util.StringTokenizer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
-
-import javax.jcr.Binary;
-import javax.jcr.Item;
-import javax.jcr.ItemNotFoundException;
-import javax.jcr.Node;
-import javax.jcr.NodeIterator;
-import javax.jcr.Property;
-import javax.jcr.PropertyIterator;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-import javax.jcr.security.AccessControlEntry;
-import javax.jcr.security.AccessControlList;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.AccessControlPolicyIterator;
-import javax.jcr.security.Privilege;
-import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -175,12 +175,15 @@ public class DefaultContentCreator implements ContentCreator {
      * @param createdNodes
      *            Optional list to store new nodes (for uninstall)
      */
-    public void init(final ImportOptions options, final Map<String, ContentReader> defaultContentReaders,
-            final List<String> createdNodes, final ContentImportListener importListener) {
+    public void init(
+            final ImportOptions options,
+            final Map<String, ContentReader> defaultContentReaders,
+            final List<String> createdNodes,
+            final ContentImportListener importListener) {
         this.configuration = options;
         // create list of allowed content readers
         this.contentReaders = new HashMap<>();
-        defaultContentReaders.forEach((key,value)->{
+        defaultContentReaders.forEach((key, value) -> {
             if (!configuration.isIgnoredImportProvider(key)) {
                 contentReaders.put(key, value);
             }
@@ -296,9 +299,9 @@ public class DefaultContentCreator implements ContentCreator {
                     }
                 }
             }
-            
+
             importedNodes.add(node.getPath());
-            
+
             // check if node is versionable
             final boolean addToVersionables = this.configuration.isCheckin() && node.isNodeType("mix:versionable");
             if (addToVersionables) {
@@ -321,7 +324,9 @@ public class DefaultContentCreator implements ContentCreator {
         final Node node = this.parentNodeStack.peek();
         // check if the property already exists and isPropertyOverwrite() is false,
         // don't overwrite it in this case
-        if (node.hasProperty(name) && !this.configuration.isPropertyOverwrite() && !node.getProperty(name).isNew()) {
+        if (node.hasProperty(name)
+                && !this.configuration.isPropertyOverwrite()
+                && !node.getProperty(name).isNew()) {
             return;
         }
 
@@ -371,7 +376,9 @@ public class DefaultContentCreator implements ContentCreator {
         final Node node = this.parentNodeStack.peek();
         // check if the property already exists and isPropertyOverwrite() is false,
         // don't overwrite it in this case
-        if (node.hasProperty(name) && !this.configuration.isPropertyOverwrite() && !node.getProperty(name).isNew()) {
+        if (node.hasProperty(name)
+                && !this.configuration.isPropertyOverwrite()
+                && !node.getProperty(name).isNew()) {
             return;
         }
         if (propertyType == PropertyType.REFERENCE) {
@@ -382,8 +389,7 @@ public class DefaultContentCreator implements ContentCreator {
             for (int i = 0; i < values.length; i++) {
                 uuids[i] = getUUID(node.getSession(), propPath, getAbsPath(node, values[i]));
                 uuidOrPaths[i] = uuids[i] != null ? uuids[i] : getAbsPath(node, values[i]);
-                if (uuids[i] == null)
-                    hasAll = false;
+                if (uuids[i] == null) hasAll = false;
             }
             checkoutIfNecessary(node);
             node.setProperty(name, uuids, propertyType);
@@ -476,7 +482,7 @@ public class DefaultContentCreator implements ContentCreator {
         if (configuration.isPropertyMerge()) {
             PropertyIterator it = node.getProperties();
             while (it.hasNext()) {
-                Property prop= it.nextProperty();
+                Property prop = it.nextProperty();
                 String propertyName = prop.getName();
                 if (appliedSet.contains(propertyName)) {
                     continue;
@@ -552,7 +558,8 @@ public class DefaultContentCreator implements ContentCreator {
             Node parentNode = getParentNode(session, property);
             if (parentNode != null) {
                 checkoutIfNecessary(parentNode);
-                if (parentNode.hasProperty(name) && parentNode.getProperty(name).getDefinition().isMultiple()) {
+                if (parentNode.hasProperty(name)
+                        && parentNode.getProperty(name).getDefinition().isMultiple()) {
                     boolean hasAll = true;
                     String[] uuidOrPaths = delayedMultipleReferences.get(property);
                     String[] uuids = new String[uuidOrPaths.length];
@@ -572,7 +579,8 @@ public class DefaultContentCreator implements ContentCreator {
                     }
                     parentNode.setProperty(name, uuids, PropertyType.REFERENCE);
                     if (this.importListener != null) {
-                        this.importListener.onCreate(parentNode.getProperty(name).getPath());
+                        this.importListener.onCreate(
+                                parentNode.getProperty(name).getPath());
                     }
                     if (hasAll) {
                         delayedMultipleReferences.remove(property);
@@ -580,7 +588,8 @@ public class DefaultContentCreator implements ContentCreator {
                 } else {
                     parentNode.setProperty(name, uuid, PropertyType.REFERENCE);
                     if (this.importListener != null) {
-                        this.importListener.onCreate(parentNode.getProperty(name).getPath());
+                        this.importListener.onCreate(
+                                parentNode.getProperty(name).getPath());
                     }
                 }
             }
@@ -695,13 +704,17 @@ public class DefaultContentCreator implements ContentCreator {
             this.parentNodeStack.push(contentNode);
             long nodeLastModified = 0L;
             if (contentNode.hasProperty(JCR_LAST_MODIFIED)) {
-                nodeLastModified = contentNode.getProperty(JCR_LAST_MODIFIED).getDate().getTimeInMillis();
+                nodeLastModified =
+                        contentNode.getProperty(JCR_LAST_MODIFIED).getDate().getTimeInMillis();
             }
             if (!this.configuration.isOverwrite() && nodeLastModified >= lastModified) {
                 return;
             }
-            log.debug("Updating {} lastModified:{} New Content LastModified:{}", parentNode.getNode(name).getPath(),
-                    new Date(nodeLastModified), new Date(lastModified));
+            log.debug(
+                    "Updating {} lastModified:{} New Content LastModified:{}",
+                    parentNode.getNode(name).getPath(),
+                    new Date(nodeLastModified),
+                    new Date(lastModified));
         } else {
             this.createNode(name, "nt:file", null);
             this.createNode("jcr:content", "nt:resource", null);
@@ -756,7 +769,7 @@ public class DefaultContentCreator implements ContentCreator {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.sling.jcr.contentloader.ContentCreator#createGroup(java.lang.
      * String, java.lang.String[], java.util.Map)
      */
@@ -801,7 +814,7 @@ public class DefaultContentCreator implements ContentCreator {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.sling.jcr.contentloader.ContentCreator#createUser(java.lang.
      * String, java.lang.String, java.util.Map)
      */
@@ -850,40 +863,41 @@ public class DefaultContentCreator implements ContentCreator {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * org.apache.sling.jcr.contentloader.ContentCreator#createAce(java.lang.String,
      * java.lang.String, java.lang.String[], java.lang.String[])
      */
-    public void createAce(String principalId, String[] grantedPrivilegeNames, String[] deniedPrivilegeNames,
-            String order) throws RepositoryException {
-        Map<String, LocalPrivilege> privilegeToLocalPrivilegesMap = toLocalPrivileges(grantedPrivilegeNames,
-                deniedPrivilegeNames);
+    public void createAce(
+            String principalId, String[] grantedPrivilegeNames, String[] deniedPrivilegeNames, String order)
+            throws RepositoryException {
+        Map<String, LocalPrivilege> privilegeToLocalPrivilegesMap =
+                toLocalPrivileges(grantedPrivilegeNames, deniedPrivilegeNames);
 
         createAce(principalId, new ArrayList<>(privilegeToLocalPrivilegesMap.values()), order);
     }
 
     /**
      * Convert the privilege names to LocalPrivileges
-     * 
+     *
      * @param grantedPrivilegeNames the granted privileges
      * @param deniedPrivilegeNames the denied privileges
      * @return map of privilege names to LocalPrivilege data
      */
-    protected Map<String, LocalPrivilege> toLocalPrivileges(String[] grantedPrivilegeNames,
-            String[] deniedPrivilegeNames) {
+    protected Map<String, LocalPrivilege> toLocalPrivileges(
+            String[] grantedPrivilegeNames, String[] deniedPrivilegeNames) {
         // first start with an empty map
         Map<String, LocalPrivilege> privilegeToLocalPrivilegesMap = new LinkedHashMap<>();
 
         if (grantedPrivilegeNames != null) {
-            for (String pn: grantedPrivilegeNames) {
+            for (String pn : grantedPrivilegeNames) {
                 LocalPrivilege lp = privilegeToLocalPrivilegesMap.computeIfAbsent(pn, LocalPrivilege::new);
                 lp.setAllow(true);
             }
         }
 
         if (deniedPrivilegeNames != null) {
-            for (String pn: deniedPrivilegeNames) {
+            for (String pn : deniedPrivilegeNames) {
                 LocalPrivilege lp = privilegeToLocalPrivilegesMap.computeIfAbsent(pn, LocalPrivilege::new);
                 lp.setDeny(true);
             }
@@ -896,28 +910,34 @@ public class DefaultContentCreator implements ContentCreator {
      */
     @Deprecated
     @Override
-    public void createAce(String principalId, String[] grantedPrivilegeNames, String[] deniedPrivilegeNames,
-            String order, Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions,
-            Set<String> removedRestrictionNames) throws RepositoryException {
-        Map<String, LocalPrivilege> privilegeToLocalPrivilegesMap = toLocalPrivileges(grantedPrivilegeNames,
-                deniedPrivilegeNames);
+    public void createAce(
+            String principalId,
+            String[] grantedPrivilegeNames,
+            String[] deniedPrivilegeNames,
+            String order,
+            Map<String, Value> restrictions,
+            Map<String, Value[]> mvRestrictions,
+            Set<String> removedRestrictionNames)
+            throws RepositoryException {
+        Map<String, LocalPrivilege> privilegeToLocalPrivilegesMap =
+                toLocalPrivileges(grantedPrivilegeNames, deniedPrivilegeNames);
 
         Set<LocalRestriction> restrictionsSet = new HashSet<>();
         if (restrictions != null) {
-            for (Entry<String, Value> entry: restrictions.entrySet()) {
+            for (Entry<String, Value> entry : restrictions.entrySet()) {
                 LocalRestriction lr = new LocalRestriction(entry.getKey(), entry.getValue());
                 restrictionsSet.add(lr);
             }
         }
         if (mvRestrictions != null) {
-            for (Entry<String, Value[]> entry: mvRestrictions.entrySet()) {
+            for (Entry<String, Value[]> entry : mvRestrictions.entrySet()) {
                 LocalRestriction lr = new LocalRestriction(entry.getKey(), entry.getValue());
                 restrictionsSet.add(lr);
             }
         }
 
         if (!restrictionsSet.isEmpty()) {
-            for (LocalPrivilege entry: privilegeToLocalPrivilegesMap.values()) {
+            for (LocalPrivilege entry : privilegeToLocalPrivilegesMap.values()) {
                 if (entry.isAllow()) {
                     entry.setAllowRestrictions(restrictionsSet);
                 }
@@ -959,7 +979,7 @@ public class DefaultContentCreator implements ContentCreator {
 
         // validate that the privilege names are valid
         AccessControlManager acm = AccessControlUtil.getAccessControlManager(jcrSession);
-        for (LocalPrivilege localPrivilege: privileges) {
+        for (LocalPrivilege localPrivilege : privileges) {
             localPrivilege.checkPrivilege(acm);
         }
 
@@ -968,13 +988,15 @@ public class DefaultContentCreator implements ContentCreator {
         // build a list of each of the LocalPrivileges that have the same restrictions
         Map<Set<LocalRestriction>, List<LocalPrivilege>> allowRestrictionsToLocalPrivilegesMap = new HashMap<>();
         Map<Set<LocalRestriction>, List<LocalPrivilege>> denyRestrictionsToLocalPrivilegesMap = new HashMap<>();
-        for (LocalPrivilege localPrivilege: privileges) {
+        for (LocalPrivilege localPrivilege : privileges) {
             if (localPrivilege.isAllow()) {
-                List<LocalPrivilege> list = allowRestrictionsToLocalPrivilegesMap.computeIfAbsent(localPrivilege.getAllowRestrictions(), key -> new ArrayList<>());
+                List<LocalPrivilege> list = allowRestrictionsToLocalPrivilegesMap.computeIfAbsent(
+                        localPrivilege.getAllowRestrictions(), key -> new ArrayList<>());
                 list.add(localPrivilege);
             }
             if (localPrivilege.isDeny()) {
-                List<LocalPrivilege> list = denyRestrictionsToLocalPrivilegesMap.computeIfAbsent(localPrivilege.getDenyRestrictions(), key -> new ArrayList<>());
+                List<LocalPrivilege> list = denyRestrictionsToLocalPrivilegesMap.computeIfAbsent(
+                        localPrivilege.getDenyRestrictions(), key -> new ArrayList<>());
                 list.add(localPrivilege);
             }
         }
@@ -987,9 +1009,22 @@ public class DefaultContentCreator implements ContentCreator {
             order = removeAces(resourcePath, order, principal, acl);
 
             // now add all the new aces that we have collected
-            Map<Privilege, Integer> privilegeLongestDepthMap = buildPrivilegeLongestDepthMap(acm.privilegeFromName(PrivilegeConstants.JCR_ALL));
-            addAces(resourcePath, principal, denyRestrictionsToLocalPrivilegesMap, false, acl, privilegeLongestDepthMap);
-            addAces(resourcePath, principal, allowRestrictionsToLocalPrivilegesMap, true, acl, privilegeLongestDepthMap);
+            Map<Privilege, Integer> privilegeLongestDepthMap =
+                    buildPrivilegeLongestDepthMap(acm.privilegeFromName(PrivilegeConstants.JCR_ALL));
+            addAces(
+                    resourcePath,
+                    principal,
+                    denyRestrictionsToLocalPrivilegesMap,
+                    false,
+                    acl,
+                    privilegeLongestDepthMap);
+            addAces(
+                    resourcePath,
+                    principal,
+                    allowRestrictionsToLocalPrivilegesMap,
+                    true,
+                    acl,
+                    privilegeLongestDepthMap);
 
             // reorder the aces
             reorderAccessControlEntries(acl, principal, order);
@@ -1005,7 +1040,8 @@ public class DefaultContentCreator implements ContentCreator {
      * If the privilege is contained in multiple aggregate privileges, then
      * calculate the instance with the greatest depth.
      */
-    private static void toLongestDepth(int parentDepth, Privilege parentPrivilege, Map<Privilege, Integer> privilegeToLongestDepth) {
+    private static void toLongestDepth(
+            int parentDepth, Privilege parentPrivilege, Map<Privilege, Integer> privilegeToLongestDepth) {
         Privilege[] declaredAggregatePrivileges = parentPrivilege.getDeclaredAggregatePrivileges();
         for (Privilege privilege : declaredAggregatePrivileges) {
             Integer oldValue = privilegeToLongestDepth.get(privilege);
@@ -1021,7 +1057,7 @@ public class DefaultContentCreator implements ContentCreator {
 
     /**
      * Calculate the longest path for each of the possible privileges
-     * 
+     *
      * @param jcrSession the current users JCR session
      * @return map where the key is the privilege and the value is the longest path
      */
@@ -1034,14 +1070,14 @@ public class DefaultContentCreator implements ContentCreator {
 
     /**
      * Lookup the ACL for the given resource
-     * 
+     *
      * @param acm the access control manager
      * @param resourcePath the resource path
      * @param principal the principal for principalbased ACL
      * @return the found ACL object
      */
-    protected JackrabbitAccessControlList getAcl(@NotNull AccessControlManager acm, String resourcePath, Principal principal)
-            throws RepositoryException {
+    protected JackrabbitAccessControlList getAcl(
+            @NotNull AccessControlManager acm, String resourcePath, Principal principal) throws RepositoryException {
         AccessControlPolicy[] policies = acm.getPolicies(resourcePath);
         JackrabbitAccessControlList acl = null;
         for (AccessControlPolicy policy : policies) {
@@ -1065,18 +1101,22 @@ public class DefaultContentCreator implements ContentCreator {
 
     /**
      * Remove all of the ACEs for the specified principal from the ACL
-     * 
+     *
      * @param order the requested order (may be null)
      * @param principal the principal whose aces should be removed
      * @param acl the access control list to update
-     * @return the original order if it was supplied, otherwise the order of the first ACE 
+     * @return the original order if it was supplied, otherwise the order of the first ACE
      */
-    protected String removeAces(@NotNull String resourcePath, @Nullable String order, @NotNull Principal principal, @NotNull JackrabbitAccessControlList acl) // NOSONAR
+    protected String removeAces(
+            @NotNull String resourcePath,
+            @Nullable String order,
+            @NotNull Principal principal,
+            @NotNull JackrabbitAccessControlList acl) // NOSONAR
             throws RepositoryException {
         AccessControlEntry[] existingAccessControlEntries = acl.getAccessControlEntries();
 
         if (order == null || order.length() == 0) {
-            //order not specified, so keep track of the original ACE position.
+            // order not specified, so keep track of the original ACE position.
             Set<Principal> processedPrincipals = new HashSet<>();
             for (int j = 0; j < existingAccessControlEntries.length; j++) {
                 AccessControlEntry ace = existingAccessControlEntries[j];
@@ -1102,42 +1142,46 @@ public class DefaultContentCreator implements ContentCreator {
     /**
      * Add ACEs for the specified principal to the ACL.  One ACE is added for each unique
      * restriction set.
-     * 
+     *
      * @param resourcePath the path of the resource
      * @param principal the principal whose aces should be added
      * @param restrictionsToLocalPrivilegesMap the map containing the restrictions mapped to the LocalPrivlege items with those resrictions
      * @param isAllow true for 'allow' ACE, false for 'deny' ACE
      * @param acl the access control list to update
      */
-    protected void addAces(@NotNull String resourcePath, @NotNull Principal principal,
+    protected void addAces(
+            @NotNull String resourcePath,
+            @NotNull Principal principal,
             @NotNull Map<Set<LocalRestriction>, List<LocalPrivilege>> restrictionsToLocalPrivilegesMap,
             boolean isAllow,
             @NotNull JackrabbitAccessControlList acl,
-            Map<Privilege, Integer> privilegeLongestDepthMap) throws RepositoryException {
+            Map<Privilege, Integer> privilegeLongestDepthMap)
+            throws RepositoryException {
 
-        List<Entry<Set<LocalRestriction>, List<LocalPrivilege>>> sortedEntries = new ArrayList<>(restrictionsToLocalPrivilegesMap.entrySet());
+        List<Entry<Set<LocalRestriction>, List<LocalPrivilege>>> sortedEntries =
+                new ArrayList<>(restrictionsToLocalPrivilegesMap.entrySet());
         // sort the entries by the most shallow depth of the contained privileges
         Collections.sort(sortedEntries, (e1, e2) -> {
-                        int shallowestDepth1 = Integer.MAX_VALUE;
-                        for (LocalPrivilege lp : e1.getValue()) {
-                            Integer depth = privilegeLongestDepthMap.get(lp.getPrivilege());
-                            if (depth != null && depth.intValue() < shallowestDepth1) {
-                                shallowestDepth1 = depth.intValue();
-                            }
-                        }
-                        int shallowestDepth2 = Integer.MAX_VALUE;
-                        for (LocalPrivilege lp : e2.getValue()) {
-                            Integer depth = privilegeLongestDepthMap.get(lp.getPrivilege());
-                            if (depth != null && depth.intValue() < shallowestDepth2) {
-                                shallowestDepth2 = depth.intValue();
-                            }
-                        }
-                        return Integer.compare(shallowestDepth1, shallowestDepth2);
-                    });
+            int shallowestDepth1 = Integer.MAX_VALUE;
+            for (LocalPrivilege lp : e1.getValue()) {
+                Integer depth = privilegeLongestDepthMap.get(lp.getPrivilege());
+                if (depth != null && depth.intValue() < shallowestDepth1) {
+                    shallowestDepth1 = depth.intValue();
+                }
+            }
+            int shallowestDepth2 = Integer.MAX_VALUE;
+            for (LocalPrivilege lp : e2.getValue()) {
+                Integer depth = privilegeLongestDepthMap.get(lp.getPrivilege());
+                if (depth != null && depth.intValue() < shallowestDepth2) {
+                    shallowestDepth2 = depth.intValue();
+                }
+            }
+            return Integer.compare(shallowestDepth1, shallowestDepth2);
+        });
 
-        for (Entry<Set<LocalRestriction>, List<LocalPrivilege>> entry: sortedEntries) {
+        for (Entry<Set<LocalRestriction>, List<LocalPrivilege>> entry : sortedEntries) {
             Set<Privilege> privilegesSet = new HashSet<>();
-            Map<String, Value> restrictions = new HashMap<>(); 
+            Map<String, Value> restrictions = new HashMap<>();
             Map<String, Value[]> mvRestrictions = new HashMap<>();
 
             Set<LocalRestriction> localRestrictions = entry.getKey();
@@ -1154,7 +1198,12 @@ public class DefaultContentCreator implements ContentCreator {
             }
 
             if (!privilegesSet.isEmpty()) {
-                acl.addEntry(principal, privilegesSet.toArray(new Privilege[privilegesSet.size()]), isAllow, restrictions, mvRestrictions);
+                acl.addEntry(
+                        principal,
+                        privilegesSet.toArray(new Privilege[privilegesSet.size()]),
+                        isAllow,
+                        restrictions,
+                        mvRestrictions);
             }
         }
     }
@@ -1179,17 +1228,17 @@ public class DefaultContentCreator implements ContentCreator {
      * @throws UnsupportedRepositoryOperationException
      * @throws AccessControlException
      */
-    private static void reorderAccessControlEntries(AccessControlList acl,
-            Principal principal, String order) throws RepositoryException {
+    private static void reorderAccessControlEntries(AccessControlList acl, Principal principal, String order)
+            throws RepositoryException {
         if (order == null || order.length() == 0) {
-            return; //nothing to do
+            return; // nothing to do
         }
         if (acl instanceof JackrabbitAccessControlList) {
-            JackrabbitAccessControlList jacl = (JackrabbitAccessControlList)acl;
+            JackrabbitAccessControlList jacl = (JackrabbitAccessControlList) acl;
 
             AccessControlEntry[] accessControlEntries = jacl.getAccessControlEntries();
             if (accessControlEntries.length <= 1) {
-                return; //only one ACE, so nothing to reorder.
+                return; // only one ACE, so nothing to reorder.
             }
 
             AccessControlEntry beforeEntry = null;
@@ -1200,32 +1249,35 @@ public class DefaultContentCreator implements ContentCreator {
             } else if (order.startsWith("before ")) {
                 String beforePrincipalName = order.substring(7);
 
-                //find the index of the ACE of the 'before' principal
-                for (int i=0; i < accessControlEntries.length; i++) {
-                    if (beforePrincipalName.equals(accessControlEntries[i].getPrincipal().getName())) {
-                        //found it!
+                // find the index of the ACE of the 'before' principal
+                for (int i = 0; i < accessControlEntries.length; i++) {
+                    if (beforePrincipalName.equals(
+                            accessControlEntries[i].getPrincipal().getName())) {
+                        // found it!
                         beforeEntry = accessControlEntries[i];
                         break;
                     }
                 }
 
                 if (beforeEntry == null) {
-                    //didn't find an ACE that matched the 'before' principal
-                    throw new IllegalArgumentException("No ACE was found for the specified principal: " + beforePrincipalName);
+                    // didn't find an ACE that matched the 'before' principal
+                    throw new IllegalArgumentException(
+                            "No ACE was found for the specified principal: " + beforePrincipalName);
                 }
             } else if (order.startsWith("after ")) {
                 String afterPrincipalName = order.substring(6);
 
                 boolean foundPrincipal = false;
-                //find the index of the ACE of the 'after' principal
+                // find the index of the ACE of the 'after' principal
                 for (int i = accessControlEntries.length - 1; i >= 0; i--) {
-                    if (afterPrincipalName.equals(accessControlEntries[i].getPrincipal().getName())) {
-                        //found it!
+                    if (afterPrincipalName.equals(
+                            accessControlEntries[i].getPrincipal().getName())) {
+                        // found it!
                         foundPrincipal = true;
 
                         // the 'before' ACE is the next one after the 'after' ACE
                         if (i >= accessControlEntries.length - 1) {
-                            //the after is the last one in the list
+                            // the after is the last one in the list
                             beforeEntry = null;
                         } else {
                             beforeEntry = accessControlEntries[i + 1];
@@ -1235,23 +1287,24 @@ public class DefaultContentCreator implements ContentCreator {
                 }
 
                 if (!foundPrincipal) {
-                    //didn't find an ACE that matched the 'after' principal
-                    throw new IllegalArgumentException("No ACE was found for the specified principal: " + afterPrincipalName);
+                    // didn't find an ACE that matched the 'after' principal
+                    throw new IllegalArgumentException(
+                            "No ACE was found for the specified principal: " + afterPrincipalName);
                 }
             } else {
                 int index = -1;
                 try {
                     index = Integer.parseInt(order);
                 } catch (NumberFormatException nfe) {
-                    //not a number.
+                    // not a number.
                     throw new IllegalArgumentException("Illegal value for the order parameter: " + order);
                 }
                 if (index > accessControlEntries.length) {
-                    //invalid index
+                    // invalid index
                     throw new IndexOutOfBoundsException("Index value is too large: " + index);
                 }
 
-                //the index value is the index of the principal.  A principal may have more
+                // the index value is the index of the principal.  A principal may have more
                 // than one ACEs (deny + grant), so we need to compensate.
                 Map<Principal, Integer> principalToIndex = new HashMap<>();
                 for (int i = 0; i < accessControlEntries.length; i++) {
@@ -1259,9 +1312,8 @@ public class DefaultContentCreator implements ContentCreator {
                     Integer idx = i;
                     principalToIndex.computeIfAbsent(principal2, key -> idx);
                 }
-                Integer[] sortedIndexes = principalToIndex.values().stream()
-                        .sorted()
-                        .toArray(size -> new Integer[size]);
+                Integer[] sortedIndexes =
+                        principalToIndex.values().stream().sorted().toArray(size -> new Integer[size]);
                 if (index >= 0 && index < sortedIndexes.length - 1) {
                     int idx = sortedIndexes[index];
                     beforeEntry = accessControlEntries[idx];
@@ -1269,11 +1321,11 @@ public class DefaultContentCreator implements ContentCreator {
             }
 
             if (beforeEntry != null) {
-                //now loop through the entries to move the affected ACEs to the specified
+                // now loop through the entries to move the affected ACEs to the specified
                 // position.
                 for (AccessControlEntry ace : accessControlEntries) {
                     if (principal.equals(ace.getPrincipal())) {
-                        //this ACE is for the specified principal.
+                        // this ACE is for the specified principal.
                         jacl.orderBefore(ace, beforeEntry);
                     }
                 }
@@ -1285,7 +1337,7 @@ public class DefaultContentCreator implements ContentCreator {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.sling.jcr.contentloader.ContentCreator#getParent()
      */
     @Override
@@ -1332,7 +1384,7 @@ public class DefaultContentCreator implements ContentCreator {
         }
         if (node.isNodeType("mix:versionable")) {
             return node;
-        } 
+        }
         try {
             return findVersionableAncestor(node.getParent());
         } catch (ItemNotFoundException e) {
@@ -1348,7 +1400,8 @@ public class DefaultContentCreator implements ContentCreator {
         if (this.configuration.isAutoCheckout()) {
             Node versionableNode = findVersionableAncestor(node);
             if (versionableNode != null && !versionableNode.isCheckedOut()) {
-                VersionManager versionManager = versionableNode.getSession().getWorkspace().getVersionManager();
+                VersionManager versionManager =
+                        versionableNode.getSession().getWorkspace().getVersionManager();
                 versionManager.checkout(versionableNode.getPath());
                 if (this.importListener != null) {
                     this.importListener.onCheckout(versionableNode.getPath());
@@ -1361,35 +1414,41 @@ public class DefaultContentCreator implements ContentCreator {
     public void finish() throws RepositoryException {
         if (this.configuration.isMerge()) {
             Session session = this.createdRootNode.getSession();
-            importedNodes.stream().flatMap(n -> {
-                Set<String> iterable = getPeers(n,session);
-                return StreamSupport.stream(iterable.spliterator(), false);
-            }).filter(path -> !importedNodes.contains(path)).forEach(path -> removeNode(path,session));
-            importedNodes.stream().flatMap(n -> {
-                Set<String> iterable = getChildren(n,session);
-                return StreamSupport.stream(iterable.spliterator(), false);
-            }).filter(path -> !importedNodes.contains(path)).forEach(path -> removeNode(path,session));
+            importedNodes.stream()
+                    .flatMap(n -> {
+                        Set<String> iterable = getPeers(n, session);
+                        return StreamSupport.stream(iterable.spliterator(), false);
+                    })
+                    .filter(path -> !importedNodes.contains(path))
+                    .forEach(path -> removeNode(path, session));
+            importedNodes.stream()
+                    .flatMap(n -> {
+                        Set<String> iterable = getChildren(n, session);
+                        return StreamSupport.stream(iterable.spliterator(), false);
+                    })
+                    .filter(path -> !importedNodes.contains(path))
+                    .forEach(path -> removeNode(path, session));
         }
     }
-    
-    private Set<String> getPeers(String path,Session session) {
-            try {
-                log.debug("finding peers for {}", path);
-                NodeIterator it = session.getNode(path).getParent().getNodes();
-                Set<String> peers = new LinkedHashSet<>();
-                while (it.hasNext()) {
-                    String child = it.nextNode().getPath();
-                    if (!child.equals(path)) {
-                        peers.add(child);
-                    }
+
+    private Set<String> getPeers(String path, Session session) {
+        try {
+            log.debug("finding peers for {}", path);
+            NodeIterator it = session.getNode(path).getParent().getNodes();
+            Set<String> peers = new LinkedHashSet<>();
+            while (it.hasNext()) {
+                String child = it.nextNode().getPath();
+                if (!child.equals(path)) {
+                    peers.add(child);
                 }
-                return peers;
-            } catch (RepositoryException e) {
-                return Collections.emptySet();
             }
+            return peers;
+        } catch (RepositoryException e) {
+            return Collections.emptySet();
+        }
     }
-    
-    private Set<String> getChildren(String path,Session session) {
+
+    private Set<String> getChildren(String path, Session session) {
         try {
             log.debug("finding children for {}", path);
             NodeIterator it = session.getNode(path).getNodes();
@@ -1402,8 +1461,8 @@ public class DefaultContentCreator implements ContentCreator {
         } catch (RepositoryException e) {
             return Collections.emptySet();
         }
-}
-    
+    }
+
     private void removeNode(String item, Session session) {
         try {
             if (this.importListener != null) {
@@ -1415,7 +1474,5 @@ public class DefaultContentCreator implements ContentCreator {
         } catch (RepositoryException e) {
             log.warn("unable to remove node {}", item);
         }
-        
     }
-
 }

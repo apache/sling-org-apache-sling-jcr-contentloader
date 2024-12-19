@@ -47,19 +47,19 @@ public class ContentTypeUtil {
 
     public static String detectContentType(final String filename) {
         if (filename != null && !filename.isEmpty()) {
-            if ( filename.toLowerCase().endsWith(EXT_JSON) ) {
+            if (filename.toLowerCase().endsWith(EXT_JSON)) {
                 return TYPE_JSON;
             }
-            if ( filename.toLowerCase().endsWith(EXT_JCR_XML)) {
+            if (filename.toLowerCase().endsWith(EXT_JCR_XML)) {
                 return TYPE_JCR_XML;
             }
-            if ( filename.toLowerCase().endsWith(EXT_XML)) {
+            if (filename.toLowerCase().endsWith(EXT_XML)) {
                 return TYPE_XML;
             }
-            if ( filename.toLowerCase().endsWith(EXT_ZIP)) {
+            if (filename.toLowerCase().endsWith(EXT_ZIP)) {
                 return TYPE_ZIP;
             }
-            if ( filename.toLowerCase().endsWith(EXT_JAR)) {
+            if (filename.toLowerCase().endsWith(EXT_JAR)) {
                 return TYPE_JAR;
             }
         }
@@ -86,5 +86,4 @@ public class ContentTypeUtil {
         }
         return null;
     }
-
 }

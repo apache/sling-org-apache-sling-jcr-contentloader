@@ -18,14 +18,10 @@
  */
 package org.apache.sling.jcr.contentloader.internal;
 
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
+import javax.jcr.Session;
 
 import java.lang.reflect.Field;
 import java.util.Collections;
-
-import javax.jcr.Session;
 
 import org.apache.sling.jcr.contentloader.ContentReader;
 import org.apache.sling.jcr.contentloader.internal.readers.JsonReader;
@@ -42,6 +38,10 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.osgi.framework.Bundle;
 import org.slf4j.LoggerFactory;
+
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Testing content loader waiting for required content reader
@@ -71,9 +71,8 @@ public class SLING11203Test {
          */
         @Override
         protected void finished(Description description) {
-           logger.info("Finished test: {}", description.getMethodName());
+            logger.info("Finished test: {}", description.getMethodName());
         }
-
     };
 
     @Before
@@ -89,7 +88,6 @@ public class SLING11203Test {
 
         // register the content loader service
         bundleHelper = context.registerInjectActivateService(new BundleContentLoaderListener());
-
     }
 
     @Test
@@ -97,9 +95,15 @@ public class SLING11203Test {
         loadContentWithDirective();
 
         // check node was not added during parsing the file
-        assertThat("Included resource should not have been imported", context.resourceResolver().getResource("/libs/app"), nullValue());
+        assertThat(
+                "Included resource should not have been imported",
+                context.resourceResolver().getResource("/libs/app"),
+                nullValue());
         // check file was not loaded as non-parsed file
-        assertThat("Included resource should not have been imported", context.resourceResolver().getResource("/libs/app.sling11203"), nullValue());
+        assertThat(
+                "Included resource should not have been imported",
+                context.resourceResolver().getResource("/libs/app.sling11203"),
+                nullValue());
     }
 
     @Test
@@ -110,9 +114,15 @@ public class SLING11203Test {
         loadContentWithDirective();
 
         // check node was added during parsing the file
-        assertThat("Included resource should have been imported", context.resourceResolver().getResource("/libs/app"), notNullValue());
+        assertThat(
+                "Included resource should have been imported",
+                context.resourceResolver().getResource("/libs/app"),
+                notNullValue());
         // check file was not loaded as non-parsed file
-        assertThat("Included resource should not have been imported", context.resourceResolver().getResource("/libs/app.sling11203"), nullValue());
+        assertThat(
+                "Included resource should not have been imported",
+                context.resourceResolver().getResource("/libs/app.sling11203"),
+                nullValue());
     }
 
     @Test
@@ -120,34 +130,49 @@ public class SLING11203Test {
         loadContentWithDirective();
 
         // check node was not added during parsing the file
-        assertThat("Included resource should not have been imported", context.resourceResolver().getResource("/libs/app"), nullValue());
+        assertThat(
+                "Included resource should not have been imported",
+                context.resourceResolver().getResource("/libs/app"),
+                nullValue());
         // check file was not loaded as non-parsed file
-        assertThat("Included resource should not have been imported", context.resourceResolver().getResource("/libs/app.sling11203"), nullValue());
+        assertThat(
+                "Included resource should not have been imported",
+                context.resourceResolver().getResource("/libs/app.sling11203"),
+                nullValue());
 
         // register the content reader that we require
         registerCustomContentReader();
 
         // check node was added during parsing the file
-        assertThat("Included resource should have been imported", context.resourceResolver().getResource("/libs/app"), notNullValue());
+        assertThat(
+                "Included resource should have been imported",
+                context.resourceResolver().getResource("/libs/app"),
+                notNullValue());
         // check file was not loaded as non-parsed file
-        assertThat("Included resource should not have been imported", context.resourceResolver().getResource("/libs/app.sling11203"), nullValue());
+        assertThat(
+                "Included resource should not have been imported",
+                context.resourceResolver().getResource("/libs/app.sling11203"),
+                nullValue());
     }
 
     protected void registerCustomContentReader() {
         // register the content reader that we require after registering the bundle
         //   to trigger the retry
-        context.registerService(ContentReader.class, new SLING11203XmlReader(), 
+        context.registerService(
+                ContentReader.class,
+                new SLING11203XmlReader(),
                 Collections.singletonMap(ContentReader.PROPERTY_EXTENSIONS, "sling11203"));
     }
 
     protected void loadContentWithDirective() throws Exception {
         // dig the BundleContentLoader out of the component field so we get the
         //  same instance so the state for the retry logic is there
-        Field privateBundleContentLoaderField = BundleContentLoaderListener.class.getDeclaredField("bundleContentLoader");
+        Field privateBundleContentLoaderField =
+                BundleContentLoaderListener.class.getDeclaredField("bundleContentLoader");
         privateBundleContentLoaderField.setAccessible(true);
-        BundleContentLoader contentLoader = (BundleContentLoader)privateBundleContentLoaderField.get(bundleHelper);
+        BundleContentLoader contentLoader = (BundleContentLoader) privateBundleContentLoaderField.get(bundleHelper);
 
-        // requireImportProviders directive, so it should check if the specified 
+        // requireImportProviders directive, so it should check if the specified
         //  required content reader is available
         String initialContentHeader = "SLING-INF3/libs;path:=/libs;requireImportProviders:=sling11203";
         Bundle mockBundle = BundleContentLoaderTest.newBundleWithInitialContent(context, initialContentHeader);
@@ -164,7 +189,5 @@ public class SLING11203Test {
             super();
             activate();
         }
-
     }
-
 }

@@ -18,6 +18,8 @@
  */
 package org.apache.sling.jcr.contentloader.internal.readers;
 
+import javax.jcr.RepositoryException;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -34,8 +36,6 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import javax.jcr.RepositoryException;
-
 import org.apache.commons.io.input.CloseShieldInputStream;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.sling.jcr.contentloader.ContentCreator;
@@ -49,36 +49,40 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * The <code>ZipReader</code>
  *
  * @since 2.0.4
  */
-@Component(service = ContentReader.class,
-    property = {
-        Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
-        ContentReader.PROPERTY_EXTENSIONS + "=zip",
-        ContentReader.PROPERTY_EXTENSIONS + "=jar",
-        ContentReader.PROPERTY_TYPES + "=application/zip",
-        ContentReader.PROPERTY_TYPES + "=application/java-archive"
-})
-@Designate(ocd=ZipReader.Config.class)
+@Component(
+        service = ContentReader.class,
+        property = {
+            Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
+            ContentReader.PROPERTY_EXTENSIONS + "=zip",
+            ContentReader.PROPERTY_EXTENSIONS + "=jar",
+            ContentReader.PROPERTY_TYPES + "=application/zip",
+            ContentReader.PROPERTY_TYPES + "=application/java-archive"
+        })
+@Designate(ocd = ZipReader.Config.class)
 public class ZipReader implements ContentReader {
 
-    @ObjectClassDefinition(name = "%zipreader.config.name",
-            description="%zipreader.config.description",
+    @ObjectClassDefinition(
+            name = "%zipreader.config.name",
+            description = "%zipreader.config.description",
             localization = "OSGI-INF/l10n/bundle")
     public @interface Config {
-        @AttributeDefinition(name = "%zipreader.config.thresholdEntries.name",
+        @AttributeDefinition(
+                name = "%zipreader.config.thresholdEntries.name",
                 description = "%zipreader.config.thresholdEntries.description")
         long thresholdEntries() default 10000;
 
-        @AttributeDefinition(name = "%zipreader.config.thresholdSize.name",
+        @AttributeDefinition(
+                name = "%zipreader.config.thresholdSize.name",
                 description = "%zipreader.config.thresholdSize.description")
         long thresholdSize() default 1000000000; // 1 GB
 
-        @AttributeDefinition(name = "%zipreader.config.thresholdRatio.name",
+        @AttributeDefinition(
+                name = "%zipreader.config.thresholdRatio.name",
                 description = "%zipreader.config.thresholdRatio.description")
         double thresholdRatio() default 10.0;
     }
@@ -100,8 +104,7 @@ public class ZipReader implements ContentReader {
      * @see org.apache.sling.jcr.contentloader.ContentReader#parse(java.net.URL, org.apache.sling.jcr.contentloader.ContentCreator)
      */
     @Override
-    public void parse(java.net.URL url, ContentCreator creator)
-            throws IOException, RepositoryException {
+    public void parse(java.net.URL url, ContentCreator creator) throws IOException, RepositoryException {
         try (InputStream is = url.openStream()) {
             parse(is, creator);
         }
@@ -118,16 +121,15 @@ public class ZipReader implements ContentReader {
     static File createTempFile() throws IOException {
         File tmpFile;
         if (isOsUnix()) {
-            FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
+            FileAttribute<Set<PosixFilePermission>> attr =
+                    PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
             tmpFile = Files.createTempFile("zipentry", ".tmp", attr).toFile();
         } else {
             tmpFile = Files.createTempFile("zipentry", ".tmp").toFile(); // NOSONAR
-            if (!tmpFile.setReadable(true, true))
-                throw new IOException("Failed to set the temp file as readable");
-            if (!tmpFile.setWritable(true, true))
-                throw new IOException("Failed to set the temp file as writable");
+            if (!tmpFile.setReadable(true, true)) throw new IOException("Failed to set the temp file as readable");
+            if (!tmpFile.setWritable(true, true)) throw new IOException("Failed to set the temp file as writable");
         }
-        return tmpFile; 
+        return tmpFile;
     }
 
     static void removeTempFile(File tempFile) {
@@ -145,10 +147,9 @@ public class ZipReader implements ContentReader {
      * @see org.apache.sling.jcr.contentloader.ContentReader#parse(java.io.InputStream, org.apache.sling.jcr.contentloader.ContentCreator)
      */
     @Override
-    public void parse(InputStream ins, ContentCreator creator)
-            throws IOException, RepositoryException {
+    public void parse(InputStream ins, ContentCreator creator) throws IOException, RepositoryException {
         File tempFile = null;
-        try ( ZipInputStream zis = new ZipInputStream(ins)) {
+        try (ZipInputStream zis = new ZipInputStream(ins)) {
             creator.createNode(null, NT_FOLDER, null);
             ZipEntry entry;
             int totalSizeArchive = 0;
@@ -156,18 +157,18 @@ public class ZipReader implements ContentReader {
             tempFile = createTempFile();
             do {
                 entry = zis.getNextEntry();
-                if ( entry != null ) {
-                    totalEntryArchive ++;
+                if (entry != null) {
+                    totalEntryArchive++;
 
-                    if ( !entry.isDirectory() ) {
+                    if (!entry.isDirectory()) {
                         // uncompress the entry to a temp file
-                        totalSizeArchive = copyZipEntryToTempFile(tempFile, zis, entry,
-                                totalSizeArchive, totalEntryArchive);
+                        totalSizeArchive =
+                                copyZipEntryToTempFile(tempFile, zis, entry, totalSizeArchive, totalEntryArchive);
 
                         // now process the entry data from the data stored in the temp file
                         String name = entry.getName();
                         int pos = name.lastIndexOf('/');
-                        if ( pos != -1 ) {
+                        if (pos != -1) {
                             creator.switchCurrentNode(name.substring(0, pos), NT_FOLDER);
                         }
                         try (FileInputStream fis = new FileInputStream(tempFile)) {
@@ -175,14 +176,14 @@ public class ZipReader implements ContentReader {
                         }
                         creator.finishNode();
                         creator.finishNode();
-                        if ( pos != -1 ) {
+                        if (pos != -1) {
                             creator.finishNode();
                         }
                     }
                     zis.closeEntry();
                 }
 
-            } while ( entry != null );
+            } while (entry != null);
             creator.finishNode();
         } finally {
             removeTempFile(tempFile);
@@ -190,9 +191,9 @@ public class ZipReader implements ContentReader {
     }
 
     /**
-     * Copy the contents of a zip entry to a temp file and check the 
+     * Copy the contents of a zip entry to a temp file and check the
      * entry contents against the configured threshold for violations
-     * 
+     *
      * @param tempFile the temp file to write the entry to
      * @param zis the input stream for the zip file we are processing
      * @param entry the current zip entry
@@ -201,8 +202,9 @@ public class ZipReader implements ContentReader {
      * @return the new totalSizeArchive value after reading the entry
      * @throws IOException
      */
-    protected int copyZipEntryToTempFile(File tempFile, ZipInputStream zis, ZipEntry entry, int totalSizeArchive,
-            int totalEntryArchive) throws IOException {
+    protected int copyZipEntryToTempFile(
+            File tempFile, ZipInputStream zis, ZipEntry entry, int totalSizeArchive, int totalEntryArchive)
+            throws IOException {
         int nBytes = -1;
         byte[] buffer = new byte[2048];
         int totalSizeEntry = 0;
@@ -216,7 +218,7 @@ public class ZipReader implements ContentReader {
                 totalSizeEntry += nBytes;
                 totalSizeArchive += nBytes;
 
-                double compressionRatio = (double)totalSizeEntry / entry.getCompressedSize();
+                double compressionRatio = (double) totalSizeEntry / entry.getCompressedSize();
                 if (compressionRatio > thresholdRatio) {
                     // ratio between compressed and uncompressed data is highly suspicious, looks like a Zip Bomb Attack
                     throw new IOException("The compression ratio exceeded the allowed threshold");
@@ -235,5 +237,4 @@ public class ZipReader implements ContentReader {
         }
         return totalSizeArchive;
     }
-
 }

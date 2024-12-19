@@ -18,12 +18,12 @@
  */
 package org.apache.sling.jcr.contentloader;
 
-import java.util.Collections;
-import java.util.Set;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
+
+import java.util.Collections;
+import java.util.Set;
 
 public class LocalPrivilege {
     private String privilegeName;
@@ -112,33 +112,21 @@ public class LocalPrivilege {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (getClass() != obj.getClass()) return false;
         LocalPrivilege other = (LocalPrivilege) obj;
-        if (allow != other.allow)
-            return false;
+        if (allow != other.allow) return false;
         if (allowRestrictions == null) {
-            if (other.allowRestrictions != null)
-                return false;
-        } else if (!allowRestrictions.equals(other.allowRestrictions))
-            return false;
-        if (deny != other.deny)
-            return false;
+            if (other.allowRestrictions != null) return false;
+        } else if (!allowRestrictions.equals(other.allowRestrictions)) return false;
+        if (deny != other.deny) return false;
         if (denyRestrictions == null) {
-            if (other.denyRestrictions != null)
-                return false;
-        } else if (!denyRestrictions.equals(other.denyRestrictions))
-            return false;
+            if (other.denyRestrictions != null) return false;
+        } else if (!denyRestrictions.equals(other.denyRestrictions)) return false;
         if (privilegeName == null) {
-            if (other.privilegeName != null)
-                return false;
-        } else if (!privilegeName.equals(other.privilegeName))
-            return false;
+            if (other.privilegeName != null) return false;
+        } else if (!privilegeName.equals(other.privilegeName)) return false;
         return true;
     }
-
 }

@@ -1,20 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.contentloader.internal;
+
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -25,12 +30,9 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonWriter;
-
 import org.apache.sling.jcr.contentloader.ContentCreator;
 import org.apache.sling.jcr.contentloader.LocalPrivilege;
 import org.apache.sling.jcr.contentloader.internal.readers.JsonReader;
@@ -148,7 +150,7 @@ public class JsonReaderTest {
 
     @org.junit.Test
     public void testMixinNodeTypes1() throws Exception {
-        final String[] mixins = new String[] { "xyz:mix1" };
+        final String[] mixins = new String[] {"xyz:mix1"};
         String json = "{ \"jcr:mixinTypes\": " + this.toJsonArray(mixins) + "}";
 
         this.mockery.checking(new Expectations() {
@@ -166,7 +168,7 @@ public class JsonReaderTest {
 
     @org.junit.Test
     public void testMixinNodeTypes2() throws Exception {
-        final String[] mixins = new String[] { "xyz:mix1", "abc:mix2" };
+        final String[] mixins = new String[] {"xyz:mix1", "abc:mix2"};
         String json = "{ \"jcr:mixinTypes\": " + this.toJsonArray(mixins) + "}";
 
         this.mockery.checking(new Expectations() {
@@ -270,7 +272,7 @@ public class JsonReaderTest {
             {
                 allowing(creator).createNode(null, null, null);
                 inSequence(mySequence);
-                allowing(creator).createProperty("p1", PropertyType.UNDEFINED, new String[] { "v1" });
+                allowing(creator).createProperty("p1", PropertyType.UNDEFINED, new String[] {"v1"});
                 inSequence(mySequence);
                 allowing(creator).finishNode();
                 inSequence(mySequence);
@@ -289,8 +291,8 @@ public class JsonReaderTest {
             {
                 allowing(creator).createNode(null, null, null);
                 inSequence(mySequence);
-                allowing(creator).createProperty("p1", PropertyType.DATE,
-                        new String[] { "2009-09-24T16:32:57.948-07:00" });
+                allowing(creator)
+                        .createProperty("p1", PropertyType.DATE, new String[] {"2009-09-24T16:32:57.948-07:00"});
                 inSequence(mySequence);
                 allowing(creator).finishNode();
                 inSequence(mySequence);
@@ -347,7 +349,7 @@ public class JsonReaderTest {
             {
                 allowing(creator).createNode(null, null, null);
                 inSequence(mySequence);
-                allowing(creator).createNode("c1", null, new String[] { "xyz:TestType" });
+                allowing(creator).createNode("c1", null, new String[] {"xyz:TestType"});
                 inSequence(mySequence);
                 allowing(creator).finishNode();
                 inSequence(mySequence);
@@ -438,8 +440,9 @@ public class JsonReaderTest {
                 allowing(creator).createNode(null, null, null);
                 allowing(creator).createUser("username1", "pwd1", map);
                 allowing(creator).createUser("username2", "pwd2", new LinkedHashMap<String, Object>());
-                allowing(creator).createGroup("group1", new String[] { "username1", "username2" },
-                        new LinkedHashMap<String, Object>());
+                allowing(creator)
+                        .createGroup(
+                                "group1", new String[] {"username1", "username2"}, new LinkedHashMap<String, Object>());
 
                 allowing(creator).finishNode();
                 inSequence(mySequence);
@@ -455,9 +458,9 @@ public class JsonReaderTest {
      * @param localPrivileges the privileges to make a collection
      * @return collection of local privileges
      */
-    private Collection<LocalPrivilege> toCollection(LocalPrivilege ... localPrivileges) {
+    private Collection<LocalPrivilege> toCollection(LocalPrivilege... localPrivileges) {
         List<LocalPrivilege> list = new ArrayList<>();
-        for (LocalPrivilege lp: localPrivileges) {
+        for (LocalPrivilege lp : localPrivileges) {
             list.add(lp);
         }
         return list;

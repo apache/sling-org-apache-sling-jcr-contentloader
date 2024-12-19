@@ -1,46 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.contentloader.internal;
-
-import static org.apache.sling.jcr.contentloader.ImportOptionsFactory.AUTO_CHECKOUT;
-import static org.apache.sling.jcr.contentloader.ImportOptionsFactory.CHECK_IN;
-import static org.apache.sling.jcr.contentloader.ImportOptionsFactory.NO_OPTIONS;
-import static org.apache.sling.jcr.contentloader.ImportOptionsFactory.OVERWRITE_NODE;
-import static org.apache.sling.jcr.contentloader.ImportOptionsFactory.OVERWRITE_PROPERTIES;
-import static org.apache.sling.jcr.contentloader.ImportOptionsFactory.createImportOptions;
-import static org.apache.sling.jcr.contentloader.LocalRestrictionTest.val;
-import static org.apache.sling.jcr.contentloader.LocalRestrictionTest.vals;
-import static org.apache.sling.jcr.contentloader.it.SLING11713InitialContentIT.assertAce;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
@@ -57,6 +33,18 @@ import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import junitx.util.PrivateAccessor;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.sling.jcr.base.util.AccessControlUtil;
@@ -73,7 +61,20 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import junitx.util.PrivateAccessor;
+import static org.apache.sling.jcr.contentloader.ImportOptionsFactory.AUTO_CHECKOUT;
+import static org.apache.sling.jcr.contentloader.ImportOptionsFactory.CHECK_IN;
+import static org.apache.sling.jcr.contentloader.ImportOptionsFactory.NO_OPTIONS;
+import static org.apache.sling.jcr.contentloader.ImportOptionsFactory.OVERWRITE_NODE;
+import static org.apache.sling.jcr.contentloader.ImportOptionsFactory.OVERWRITE_PROPERTIES;
+import static org.apache.sling.jcr.contentloader.ImportOptionsFactory.createImportOptions;
+import static org.apache.sling.jcr.contentloader.LocalRestrictionTest.val;
+import static org.apache.sling.jcr.contentloader.LocalRestrictionTest.vals;
+import static org.apache.sling.jcr.contentloader.it.SLING11713InitialContentIT.assertAce;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 public class DefaultContentCreatorTest {
 
@@ -90,10 +91,13 @@ public class DefaultContentCreatorTest {
 
     @Before
     public void setup() throws Exception {
-    	session = context.resourceResolver().adaptTo(Session.class);
+        session = context.resourceResolver().adaptTo(Session.class);
         contentCreator = new DefaultContentCreator(null);
-        contentCreator.init(createImportOptions(OVERWRITE_NODE|OVERWRITE_PROPERTIES|AUTO_CHECKOUT),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(
+                createImportOptions(OVERWRITE_NODE | OVERWRITE_PROPERTIES | AUTO_CHECKOUT),
+                new HashMap<String, ContentReader>(),
+                null,
+                null);
         parentNode = session.getRootNode().addNode(getClass().getSimpleName()).addNode(uniqueId());
     }
 
@@ -101,16 +105,24 @@ public class DefaultContentCreatorTest {
     public void willRewriteUndefinedPropertyType() throws RepositoryException {
         parentNode = mockery.mock(Node.class);
         prop = mockery.mock(Property.class);
-        contentCreator.init(createImportOptions(OVERWRITE_NODE|OVERWRITE_PROPERTIES|AUTO_CHECKOUT),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(
+                createImportOptions(OVERWRITE_NODE | OVERWRITE_PROPERTIES | AUTO_CHECKOUT),
+                new HashMap<String, ContentReader>(),
+                null,
+                null);
 
         contentCreator.prepareParsing(parentNode, null);
-        this.mockery.checking(new Expectations() {{
-        	allowing(parentNode).isNodeType("mix:versionable"); will(returnValue(Boolean.FALSE));
-        	allowing(parentNode).getParent(); will(returnValue(null));
-            oneOf (parentNode).hasProperty("foo"); will(returnValue(Boolean.TRUE));
-            oneOf (parentNode).setProperty(with(equal("foo")), with(equal("bar")));
-        }});
+        this.mockery.checking(new Expectations() {
+            {
+                allowing(parentNode).isNodeType("mix:versionable");
+                will(returnValue(Boolean.FALSE));
+                allowing(parentNode).getParent();
+                will(returnValue(null));
+                oneOf(parentNode).hasProperty("foo");
+                will(returnValue(Boolean.TRUE));
+                oneOf(parentNode).setProperty(with(equal("foo")), with(equal("bar")));
+            }
+        });
         contentCreator.createProperty("foo", PropertyType.UNDEFINED, "bar");
     }
 
@@ -118,15 +130,19 @@ public class DefaultContentCreatorTest {
     public void willNotRewriteUndefinedPropertyType() throws RepositoryException {
         parentNode = mockery.mock(Node.class);
         prop = mockery.mock(Property.class);
-        contentCreator.init(createImportOptions(AUTO_CHECKOUT),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(AUTO_CHECKOUT), new HashMap<String, ContentReader>(), null, null);
 
         contentCreator.prepareParsing(parentNode, null);
-        this.mockery.checking(new Expectations() {{
-            oneOf (parentNode).hasProperty("foo"); will(returnValue(Boolean.TRUE));
-            oneOf (parentNode).getProperty("foo"); will(returnValue(prop));
-            oneOf (prop).isNew(); will(returnValue(Boolean.FALSE));
-        }});
+        this.mockery.checking(new Expectations() {
+            {
+                oneOf(parentNode).hasProperty("foo");
+                will(returnValue(Boolean.TRUE));
+                oneOf(parentNode).getProperty("foo");
+                will(returnValue(prop));
+                oneOf(prop).isNew();
+                will(returnValue(Boolean.FALSE));
+            }
+        });
         contentCreator.createProperty("foo", PropertyType.UNDEFINED, "bar");
     }
 
@@ -136,17 +152,21 @@ public class DefaultContentCreatorTest {
         prop = mockery.mock(Property.class);
         parentNode = mockery.mock(Node.class);
 
-        this.mockery.checking(new Expectations(){{
-            oneOf(parentNode).hasProperty(propertyName); will(returnValue(true));
-            oneOf(parentNode).getProperty(propertyName); will(returnValue(prop));
-            oneOf(prop).isNew(); will(returnValue(false));
-        }});
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        this.mockery.checking(new Expectations() {
+            {
+                oneOf(parentNode).hasProperty(propertyName);
+                will(returnValue(true));
+                oneOf(parentNode).getProperty(propertyName);
+                will(returnValue(prop));
+                oneOf(prop).isNew();
+                will(returnValue(false));
+            }
+        });
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
-        //By calling this method we expect that it will returns on first if-statement
+        // By calling this method we expect that it will returns on first if-statement
         contentCreator.createProperty("foo", PropertyType.REFERENCE, "bar");
-        //Checking that
+        // Checking that
         mockery.assertIsSatisfied();
     }
 
@@ -161,26 +181,34 @@ public class DefaultContentCreatorTest {
         parentNode = mockery.mock(Node.class);
         prop = mockery.mock(Property.class);
 
-        this.mockery.checking(new Expectations(){{
-            oneOf(session).itemExists(with(any(String.class))); will(returnValue(true));
-            oneOf(session).getItem(with(any(String.class))); will(returnValue(parentNode));
+        this.mockery.checking(new Expectations() {
+            {
+                oneOf(session).itemExists(with(any(String.class)));
+                will(returnValue(true));
+                oneOf(session).getItem(with(any(String.class)));
+                will(returnValue(parentNode));
 
-            exactly(2).of(parentNode).getPath(); will(returnValue("/" + rootNodeName));
-            oneOf(parentNode).isNode(); will(returnValue(true));
-            oneOf(parentNode).isNodeType("mix:referenceable"); will(returnValue(true));
-            oneOf(parentNode).getIdentifier(); will(returnValue(uuid));
-            oneOf(parentNode).getSession(); will(returnValue(session));
-            oneOf(parentNode).hasProperty(with(any(String.class)));
-            oneOf(parentNode).setProperty(propertyName, uuid, PropertyType.REFERENCE);
-            oneOf(parentNode).getProperty(with(any(String.class)));
-            oneOf(listener).onCreate(with(any(String.class)));
-        }});
+                exactly(2).of(parentNode).getPath();
+                will(returnValue("/" + rootNodeName));
+                oneOf(parentNode).isNode();
+                will(returnValue(true));
+                oneOf(parentNode).isNodeType("mix:referenceable");
+                will(returnValue(true));
+                oneOf(parentNode).getIdentifier();
+                will(returnValue(uuid));
+                oneOf(parentNode).getSession();
+                will(returnValue(session));
+                oneOf(parentNode).hasProperty(with(any(String.class)));
+                oneOf(parentNode).setProperty(propertyName, uuid, PropertyType.REFERENCE);
+                oneOf(parentNode).getProperty(with(any(String.class)));
+                oneOf(listener).onCreate(with(any(String.class)));
+            }
+        });
 
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, listener);
-        contentCreator.prepareParsing(parentNode,null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, listener);
+        contentCreator.prepareParsing(parentNode, null);
         contentCreator.createProperty(propertyName, PropertyType.REFERENCE, propertyValue);
-        //The only way I found how to test this method is to check numbers of methods calls
+        // The only way I found how to test this method is to check numbers of methods calls
         mockery.assertIsSatisfied();
     }
 
@@ -188,18 +216,20 @@ public class DefaultContentCreatorTest {
     public void testCreateFalseCheckedOutPreperty() throws RepositoryException {
         parentNode = mockery.mock(Node.class);
 
-        this.mockery.checking(new Expectations(){{
-            oneOf(parentNode).hasProperty(with(any(String.class)));
-        }});
+        this.mockery.checking(new Expectations() {
+            {
+                oneOf(parentNode).hasProperty(with(any(String.class)));
+            }
+        });
 
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         int numberOfVersionablesNodes = contentCreator.getVersionables().size();
         contentCreator.createProperty("jcr:isCheckedOut", PropertyType.UNDEFINED, "false");
-        //Checking that list of versionables was changed
-        assertEquals(numberOfVersionablesNodes + 1, contentCreator.getVersionables().size());
+        // Checking that list of versionables was changed
+        assertEquals(
+                numberOfVersionablesNodes + 1, contentCreator.getVersionables().size());
         mockery.assertIsSatisfied();
     }
 
@@ -207,17 +237,18 @@ public class DefaultContentCreatorTest {
     public void testCreateTrueCheckedOutPreperty() throws RepositoryException {
         parentNode = mockery.mock(Node.class);
 
-        this.mockery.checking(new Expectations(){{
-            oneOf(parentNode).hasProperty(with(any(String.class)));
-        }});
+        this.mockery.checking(new Expectations() {
+            {
+                oneOf(parentNode).hasProperty(with(any(String.class)));
+            }
+        });
 
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         int numberOfVersionablesNodes = contentCreator.getVersionables().size();
         contentCreator.createProperty("jcr:isCheckedOut", PropertyType.UNDEFINED, "true");
-        //Checking that list of versionables doesn't changed
+        // Checking that list of versionables doesn't changed
         assertEquals(numberOfVersionablesNodes, contentCreator.getVersionables().size());
         mockery.assertIsSatisfied();
     }
@@ -230,16 +261,19 @@ public class DefaultContentCreatorTest {
         parentNode = mockery.mock(Node.class);
         prop = mockery.mock(Property.class);
 
-        this.mockery.checking(new Expectations(){{
-            oneOf(parentNode).hasProperty(with(any(String.class)));
-            oneOf(parentNode).setProperty(with(any(String.class)), with(any(Calendar.class)));
-            oneOf(parentNode).getProperty(with(any(String.class))); will(returnValue(prop));
-            oneOf(prop).getPath(); will(returnValue(""));
-            oneOf(listener).onCreate(with(any(String.class)));
-        }});
+        this.mockery.checking(new Expectations() {
+            {
+                oneOf(parentNode).hasProperty(with(any(String.class)));
+                oneOf(parentNode).setProperty(with(any(String.class)), with(any(Calendar.class)));
+                oneOf(parentNode).getProperty(with(any(String.class)));
+                will(returnValue(prop));
+                oneOf(prop).getPath();
+                will(returnValue(""));
+                oneOf(listener).onCreate(with(any(String.class)));
+            }
+        });
 
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, listener);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, listener);
         contentCreator.prepareParsing(parentNode, null);
 
         contentCreator.createProperty(propertyName, PropertyType.DATE, propertyValue);
@@ -255,31 +289,37 @@ public class DefaultContentCreatorTest {
         parentNode = mockery.mock(Node.class);
         prop = mockery.mock(Property.class);
 
-        this.mockery.checking(new Expectations(){{
-            oneOf(parentNode).hasProperty(with(any(String.class)));
-            oneOf(parentNode).getProperty(propertyName); will(returnValue(prop));
-            oneOf(parentNode).setProperty(propertyName, propertyValue, propertyType);
-            oneOf(prop).getPath(); will(returnValue(""));
-            oneOf(listener).onCreate(with(any(String.class)));
-        }});
+        this.mockery.checking(new Expectations() {
+            {
+                oneOf(parentNode).hasProperty(with(any(String.class)));
+                oneOf(parentNode).getProperty(propertyName);
+                will(returnValue(prop));
+                oneOf(parentNode).setProperty(propertyName, propertyValue, propertyType);
+                oneOf(prop).getPath();
+                will(returnValue(""));
+                oneOf(listener).onCreate(with(any(String.class)));
+            }
+        });
 
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, listener);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, listener);
         contentCreator.prepareParsing(parentNode, null);
 
         contentCreator.createProperty(propertyName, propertyType, propertyValue);
         mockery.assertIsSatisfied();
     }
 
-    //----- DefaultContentCreator#createNode(String name, String primaryNodeType, String[] mixinNodeTypes)-------//
+    // ----- DefaultContentCreator#createNode(String name, String primaryNodeType, String[] mixinNodeTypes)-------//
 
     @Test
     public void createNodeWithoutNameAndTwoInStack() throws RepositoryException {
-        contentCreator.init(createImportOptions(OVERWRITE_NODE|OVERWRITE_PROPERTIES|AUTO_CHECKOUT),
-                new HashMap<String, ContentReader>(), null, null);
-        //Making parentNodeStack.size() == 1
+        contentCreator.init(
+                createImportOptions(OVERWRITE_NODE | OVERWRITE_PROPERTIES | AUTO_CHECKOUT),
+                new HashMap<String, ContentReader>(),
+                null,
+                null);
+        // Making parentNodeStack.size() == 1
         contentCreator.prepareParsing(parentNode, DEFAULT_NAME);
-        //Making parentNodeStack.size() == 2
+        // Making parentNodeStack.size() == 2
         contentCreator.createNode(uniqueId(), null, null);
 
         assertThrows(RepositoryException.class, () -> {
@@ -287,20 +327,22 @@ public class DefaultContentCreatorTest {
         });
     }
 
-
     @Test
     public void createNodeWithoutProvidedNames() throws RepositoryException, NoSuchFieldException {
         @SuppressWarnings("unchecked")
-		Deque<Node> nodesStack = (Deque<Node>)PrivateAccessor.getField(contentCreator, "parentNodeStack");
+        Deque<Node> nodesStack = (Deque<Node>) PrivateAccessor.getField(contentCreator, "parentNodeStack");
 
-        contentCreator.init(createImportOptions(OVERWRITE_NODE|OVERWRITE_PROPERTIES|AUTO_CHECKOUT),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(
+                createImportOptions(OVERWRITE_NODE | OVERWRITE_PROPERTIES | AUTO_CHECKOUT),
+                new HashMap<String, ContentReader>(),
+                null,
+                null);
 
         contentCreator.prepareParsing(parentNode, null);
-        //Contains parentNode only
+        // Contains parentNode only
         assertEquals(1, nodesStack.size());
         contentCreator.createNode(null, null, null);
-        //Node has not been created since any name not provided
+        // Node has not been created since any name not provided
         assertEquals(1, nodesStack.size());
     }
 
@@ -311,12 +353,17 @@ public class DefaultContentCreatorTest {
         final String propertyValue = uniqueId();
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
 
-        this.mockery.checking(new Expectations(){{
-            oneOf(listener).onCreate(with(any(String.class)));
-        }});
+        this.mockery.checking(new Expectations() {
+            {
+                oneOf(listener).onCreate(with(any(String.class)));
+            }
+        });
 
-        contentCreator.init(createImportOptions(OVERWRITE_NODE |AUTO_CHECKOUT),
-                new HashMap<String, ContentReader>(), null, listener);
+        contentCreator.init(
+                createImportOptions(OVERWRITE_NODE | AUTO_CHECKOUT),
+                new HashMap<String, ContentReader>(),
+                null,
+                listener);
         contentCreator.prepareParsing(parentNode, DEFAULT_NAME);
 
         Node nodeToOverwrite = parentNode.addNode(newNodeName);
@@ -324,7 +371,7 @@ public class DefaultContentCreatorTest {
 
         assertTrue(parentNode.getNode(newNodeName).hasProperty(propertyName));
         contentCreator.createNode(newNodeName, null, null);
-        //If node was overwritten(as we expect) it will not contain this property
+        // If node was overwritten(as we expect) it will not contain this property
         assertFalse(parentNode.getNode(newNodeName).hasProperty(propertyName));
         mockery.assertIsSatisfied();
     }
@@ -334,10 +381,9 @@ public class DefaultContentCreatorTest {
         final String newNodeName = uniqueId();
         final String[] mixins = {"mix:versionable"};
         @SuppressWarnings("unchecked")
-		final List<Node> versionables = (List<Node>) PrivateAccessor.getField(contentCreator, "versionables");
+        final List<Node> versionables = (List<Node>) PrivateAccessor.getField(contentCreator, "versionables");
 
-        contentCreator.init(createImportOptions(CHECK_IN),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(CHECK_IN), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, DEFAULT_NAME);
 
         Node newNode = parentNode.addNode(newNodeName);
@@ -354,12 +400,17 @@ public class DefaultContentCreatorTest {
         final List<String> createdNodes = new ArrayList<String>();
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
 
-        this.mockery.checking(new Expectations(){{
-            oneOf(listener).onCreate(with(any(String.class)));
-        }});
+        this.mockery.checking(new Expectations() {
+            {
+                oneOf(listener).onCreate(with(any(String.class)));
+            }
+        });
 
-        contentCreator.init(createImportOptions(OVERWRITE_NODE |AUTO_CHECKOUT),
-                new HashMap<String, ContentReader>(), createdNodes, listener);
+        contentCreator.init(
+                createImportOptions(OVERWRITE_NODE | AUTO_CHECKOUT),
+                new HashMap<String, ContentReader>(),
+                createdNodes,
+                listener);
         contentCreator.prepareParsing(parentNode, DEFAULT_NAME);
 
         int createdNodesSize = createdNodes.size();
@@ -371,24 +422,22 @@ public class DefaultContentCreatorTest {
         mockery.assertIsSatisfied();
     }
 
-    //----- DefaultContentCreator#createProperty(String name, int propertyType, String[] values)-------//
+    // ----- DefaultContentCreator#createProperty(String name, int propertyType, String[] values)-------//
 
     @Test
     public void propertyDoesntOverwritten() throws RepositoryException {
         final String newPropertyName = uniqueId();
         final String newPropertyValue = uniqueId();
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, DEFAULT_NAME);
 
         parentNode.setProperty(newPropertyName, newPropertyValue);
         session.save();
-        contentCreator.createProperty(newPropertyName, PropertyType.REFERENCE, new String[]{"bar1", "bar2"});
-        //Checking that property is old
+        contentCreator.createProperty(newPropertyName, PropertyType.REFERENCE, new String[] {"bar1", "bar2"});
+        // Checking that property is old
         assertTrue(!parentNode.getProperty(newPropertyName).isNew());
         assertEquals(newPropertyValue, parentNode.getProperty(newPropertyName).getString());
     }
-
 
     @Test
     public void createReferenceProperty() throws RepositoryException, NoSuchFieldException {
@@ -396,14 +445,15 @@ public class DefaultContentCreatorTest {
         final String[] propValues = {uniqueId(), uniqueId()};
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
         @SuppressWarnings("unchecked")
-		final Map<String, String[]> delayedMultipleReferences =
-                (Map<String, String[]>)PrivateAccessor.getField(contentCreator, "delayedMultipleReferences");
-        this.mockery.checking(new Expectations(){{
-            oneOf(listener).onCreate(with(any(String.class)));
-        }});
+        final Map<String, String[]> delayedMultipleReferences =
+                (Map<String, String[]>) PrivateAccessor.getField(contentCreator, "delayedMultipleReferences");
+        this.mockery.checking(new Expectations() {
+            {
+                oneOf(listener).onCreate(with(any(String.class)));
+            }
+        });
 
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, listener);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, listener);
         contentCreator.prepareParsing(parentNode, DEFAULT_NAME);
 
         contentCreator.createProperty(propName, PropertyType.REFERENCE, propValues);
@@ -423,13 +473,14 @@ public class DefaultContentCreatorTest {
         final String[] propValues = {"2012-10-01T09:45:00.000+02:00", "2011-02-13T09:45:00.000+02:00"};
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
 
-        this.mockery.checking(new Expectations(){{
-            oneOf(listener).onCreate(with(any(String.class)));
-        }});
+        this.mockery.checking(new Expectations() {
+            {
+                oneOf(listener).onCreate(with(any(String.class)));
+            }
+        });
         parentNode.addMixin("mix:versionable");
 
-        contentCreator.init(createImportOptions(AUTO_CHECKOUT),
-                new HashMap<String, ContentReader>(), null, listener);
+        contentCreator.init(createImportOptions(AUTO_CHECKOUT), new HashMap<String, ContentReader>(), null, listener);
         contentCreator.prepareParsing(parentNode, null);
 
         assertFalse(parentNode.hasProperty(propName));
@@ -448,16 +499,17 @@ public class DefaultContentCreatorTest {
         final String propName = uniqueId();
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
 
-        this.mockery.checking(new Expectations(){{
-            oneOf(listener).onCreate(with(any(String.class)));
-        }});
+        this.mockery.checking(new Expectations() {
+            {
+                oneOf(listener).onCreate(with(any(String.class)));
+            }
+        });
 
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, listener);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, listener);
         contentCreator.prepareParsing(parentNode, null);
 
         assertFalse(parentNode.hasProperty(propName));
-        contentCreator.createProperty(propName, PropertyType.UNDEFINED, new String[]{});
+        contentCreator.createProperty(propName, PropertyType.UNDEFINED, new String[] {});
         assertTrue(parentNode.hasProperty(propName));
         mockery.assertIsSatisfied();
     }
@@ -466,35 +518,35 @@ public class DefaultContentCreatorTest {
     public void createOtherProperty() throws RepositoryException {
         final String propName = uniqueId();
 
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         assertFalse(parentNode.hasProperty(propName));
-        contentCreator.createProperty(propName, PropertyType.STRING, new String[]{});
+        contentCreator.createProperty(propName, PropertyType.STRING, new String[] {});
         assertTrue(parentNode.hasProperty(propName));
     }
 
-    //------DefaultContentCreator#finishNode()------//
+    // ------DefaultContentCreator#finishNode()------//
 
     @Test
     public void finishNodeWithMultipleProperty() throws RepositoryException, NoSuchFieldException {
         final String propName = uniqueId();
         final String underTestNodeName = uniqueId();
         @SuppressWarnings("unchecked")
-		final Map<String, List<String>> delayedMultipleReferences =
+        final Map<String, List<String>> delayedMultipleReferences =
                 (Map<String, List<String>>) PrivateAccessor.getField(contentCreator, "delayedMultipleReferences");
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
 
-        this.mockery.checking(new Expectations(){{
-            exactly(3).of(listener).onCreate(with(any(String.class)));
-        }});
+        this.mockery.checking(new Expectations() {
+            {
+                exactly(3).of(listener).onCreate(with(any(String.class)));
+            }
+        });
 
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, listener);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, listener);
         contentCreator.prepareParsing(parentNode, null);
 
-        contentCreator.createProperty(propName, PropertyType.REFERENCE, new String[]{underTestNodeName});
+        contentCreator.createProperty(propName, PropertyType.REFERENCE, new String[] {underTestNodeName});
         contentCreator.createNode(underTestNodeName, null, null);
         assertEquals(1, delayedMultipleReferences.size());
 
@@ -512,12 +564,13 @@ public class DefaultContentCreatorTest {
         final String underTestNodeName = uniqueId();
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
 
-        this.mockery.checking(new Expectations(){{
-            exactly(2).of(listener).onCreate(with(any(String.class)));
-        }});
+        this.mockery.checking(new Expectations() {
+            {
+                exactly(2).of(listener).onCreate(with(any(String.class)));
+            }
+        });
 
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, listener);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, listener);
         contentCreator.prepareParsing(parentNode, null);
 
         contentCreator.createProperty(propName, PropertyType.REFERENCE, underTestNodeName);
@@ -536,8 +589,7 @@ public class DefaultContentCreatorTest {
         final String propName = uniqueId();
         final String underTestNodeName = uniqueId();
 
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         contentCreator.createProperty(propName, PropertyType.UNDEFINED, underTestNodeName);
@@ -552,41 +604,46 @@ public class DefaultContentCreatorTest {
         final String propName = uniqueId();
         final String underTestNodeName = uniqueId();
 
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         contentCreator.createProperty(propName, PropertyType.REFERENCE, underTestNodeName);
         contentCreator.createNode(underTestNodeName, null, null);
 
         contentCreator.finishNode();
-        //False since it doesn't have referenceable mixin
+        // False since it doesn't have referenceable mixin
         assertFalse(parentNode.hasProperty(propName));
     }
 
     @Test
     public void createAceWithoutRestrictionsSpecified() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
         contentCreator.createUser(userName, "Test", null);
 
-        contentCreator.createAce(userName, new String[] {PrivilegeConstants.JCR_READ}, 
-                new String[] {PrivilegeConstants.JCR_WRITE}, null);
+        contentCreator.createAce(
+                userName,
+                new String[] {PrivilegeConstants.JCR_READ},
+                new String[] {PrivilegeConstants.JCR_WRITE},
+                null);
 
         contentCreator.finishNode();
 
-        //verify ACE was set.
+        // verify ACE was set.
         List<AccessControlEntry> allEntries = allEntries();
         assertEquals(2, allEntries.size());
-        assertAce(allEntries.get(0), userName,
+        assertAce(
+                allEntries.get(0),
+                userName,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {}, // RestrictionNames
                 new String[][] {}); // RestrictionValues
-        assertAce(allEntries.get(1), userName,
+        assertAce(
+                allEntries.get(1),
+                userName,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {}, // RestrictionNames
@@ -596,63 +653,79 @@ public class DefaultContentCreatorTest {
     @Deprecated
     @Test
     public void createAceWithNonSpecificRestrictions() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
         contentCreator.createUser(userName, "Test", null);
 
-        contentCreator.createAce(userName, new String[] {PrivilegeConstants.JCR_READ}, 
-                new String[] {PrivilegeConstants.JCR_WRITE}, null,
-                Collections.singletonMap(AccessControlConstants.REP_GLOB, val("glob1allow")),  // restrictions
-                Collections.singletonMap(AccessControlConstants.REP_ITEM_NAMES, vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2")),  // mvRestrictions
+        contentCreator.createAce(
+                userName,
+                new String[] {PrivilegeConstants.JCR_READ},
+                new String[] {PrivilegeConstants.JCR_WRITE},
+                null,
+                Collections.singletonMap(AccessControlConstants.REP_GLOB, val("glob1allow")), // restrictions
+                Collections.singletonMap(
+                        AccessControlConstants.REP_ITEM_NAMES,
+                        vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2")), // mvRestrictions
                 Collections.emptySet()); // removedRestrictionNames
 
         contentCreator.finishNode();
 
-        //verify ACE was set.
+        // verify ACE was set.
         List<AccessControlEntry> allEntries = allEntries();
         assertEquals(2, allEntries.size());
-        assertAce(allEntries.get(0), userName,
+        assertAce(
+                allEntries.get(0),
+                userName,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
-                new String[] {AccessControlConstants.REP_GLOB, AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}, new String[] {"name1", "name2"}}); // RestrictionValues
-        assertAce(allEntries.get(1), userName,
+                new String[] {AccessControlConstants.REP_GLOB, AccessControlConstants.REP_ITEM_NAMES
+                }, // RestrictionNames
+                new String[][] {new String[] {"glob1allow"}, new String[] {"name1", "name2"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(1),
+                userName,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
-                new String[] {AccessControlConstants.REP_GLOB, AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}, new String[] {"name1", "name2"}}); // RestrictionValues
+                new String[] {AccessControlConstants.REP_GLOB, AccessControlConstants.REP_ITEM_NAMES
+                }, // RestrictionNames
+                new String[][] {new String[] {"glob1allow"}, new String[] {"name1", "name2"}}); // RestrictionValues
     }
 
     @Deprecated
     @Test
     public void createAceWithNullSpecificRestrictions() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
         contentCreator.createUser(userName, "Test", null);
 
-        contentCreator.createAce(userName, new String[] {PrivilegeConstants.JCR_READ}, 
-                new String[] {PrivilegeConstants.JCR_WRITE}, null,
-                null,  // restrictions
-                null,  // mvRestrictions
+        contentCreator.createAce(
+                userName,
+                new String[] {PrivilegeConstants.JCR_READ},
+                new String[] {PrivilegeConstants.JCR_WRITE},
+                null,
+                null, // restrictions
+                null, // mvRestrictions
                 null); // removedRestrictionNames
 
         contentCreator.finishNode();
 
-        //verify ACE was set.
+        // verify ACE was set.
         List<AccessControlEntry> allEntries = allEntries();
         assertEquals(2, allEntries.size());
-        assertAce(allEntries.get(0), userName,
+        assertAce(
+                allEntries.get(0),
+                userName,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {}, // RestrictionNames
                 new String[][] {}); // RestrictionValues
-        assertAce(allEntries.get(1), userName,
+        assertAce(
+                allEntries.get(1),
+                userName,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {}, // RestrictionNames
@@ -661,8 +734,7 @@ public class DefaultContentCreatorTest {
 
     @Test
     public void createAceWithSpecificRestrictions() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
@@ -671,35 +743,41 @@ public class DefaultContentCreatorTest {
         List<LocalPrivilege> list = new ArrayList<>();
         LocalPrivilege readLp = new LocalPrivilege(PrivilegeConstants.JCR_READ);
         readLp.setAllow(true);
-        readLp.setAllowRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
+        readLp.setAllowRestrictions(
+                Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
         list.add(readLp);
         LocalPrivilege writeLp = new LocalPrivilege(PrivilegeConstants.JCR_WRITE);
         writeLp.setDeny(true);
-        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
+        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(
+                AccessControlConstants.REP_ITEM_NAMES,
+                vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
         list.add(writeLp);
         contentCreator.createAce(userName, list, null);
 
         contentCreator.finishNode();
 
-        //verify ACE was set.
+        // verify ACE was set.
         List<AccessControlEntry> allEntries = allEntries();
         assertEquals(2, allEntries.size());
-        assertAce(allEntries.get(0), userName,
+        assertAce(
+                allEntries.get(0),
+                userName,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"name1", "name2"}}); // RestrictionValues
-        assertAce(allEntries.get(1), userName,
+                new String[][] {new String[] {"name1", "name2"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(1),
+                userName,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_GLOB}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
+                new String[][] {new String[] {"glob1allow"}}); // RestrictionValues
     }
 
     @Test
     public void createAceWithSpecificRestrictionsTwice() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
@@ -708,11 +786,14 @@ public class DefaultContentCreatorTest {
         List<LocalPrivilege> list = new ArrayList<>();
         LocalPrivilege readLp = new LocalPrivilege(PrivilegeConstants.JCR_READ);
         readLp.setAllow(true);
-        readLp.setAllowRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
+        readLp.setAllowRestrictions(
+                Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
         list.add(readLp);
         LocalPrivilege writeLp = new LocalPrivilege(PrivilegeConstants.JCR_WRITE);
         writeLp.setDeny(true);
-        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
+        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(
+                AccessControlConstants.REP_ITEM_NAMES,
+                vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
         list.add(writeLp);
         contentCreator.createAce(userName, list, null);
         // call again to verify the old aces are replaced with the new ones
@@ -720,25 +801,28 @@ public class DefaultContentCreatorTest {
 
         contentCreator.finishNode();
 
-        //verify ACE was set.
+        // verify ACE was set.
         List<AccessControlEntry> allEntries = allEntries();
         assertEquals(2, allEntries.size());
-        assertAce(allEntries.get(0), userName,
+        assertAce(
+                allEntries.get(0),
+                userName,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"name1", "name2"}}); // RestrictionValues
-        assertAce(allEntries.get(1), userName,
+                new String[][] {new String[] {"name1", "name2"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(1),
+                userName,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_GLOB}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
+                new String[][] {new String[] {"glob1allow"}}); // RestrictionValues
     }
 
     @Test
     public void createAceWithNullPrivileges() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
@@ -749,15 +833,14 @@ public class DefaultContentCreatorTest {
 
         contentCreator.finishNode();
 
-        //verify ACE was set.
+        // verify ACE was set.
         List<AccessControlEntry> allEntries = allEntries();
         assertEquals(0, allEntries.size());
     }
 
     @Test
     public void createAceWithNullPrincipal() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
@@ -765,34 +848,39 @@ public class DefaultContentCreatorTest {
 
         // try null principal
         assertThrows("No principal found for id: null", RepositoryException.class, () -> {
-            contentCreator.createAce(null, new String[] {PrivilegeConstants.JCR_READ}, 
-                    new String[] {PrivilegeConstants.JCR_WRITE}, null);
+            contentCreator.createAce(
+                    null,
+                    new String[] {PrivilegeConstants.JCR_READ},
+                    new String[] {PrivilegeConstants.JCR_WRITE},
+                    null);
         });
 
         contentCreator.finishNode();
 
-        //verify ACE was not set.
+        // verify ACE was not set.
         List<AccessControlEntry> allEntries = allEntries();
         assertEquals(0, allEntries.size());
     }
 
     @Test
     public void createAceWithInvalidPrincipal() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
 
         // try non-existing principal
         assertThrows(String.format("No principal found for id: %s", userName), RepositoryException.class, () -> {
-            contentCreator.createAce(userName, new String[] {PrivilegeConstants.JCR_READ}, 
-                    new String[] {PrivilegeConstants.JCR_WRITE}, null);
+            contentCreator.createAce(
+                    userName,
+                    new String[] {PrivilegeConstants.JCR_READ},
+                    new String[] {PrivilegeConstants.JCR_WRITE},
+                    null);
         });
 
         contentCreator.finishNode();
 
-        //verify ACE was set.
+        // verify ACE was set.
         List<AccessControlEntry> allEntries = allEntries();
         assertEquals(0, allEntries.size());
     }
@@ -802,10 +890,10 @@ public class DefaultContentCreatorTest {
         createAceWithOrderBy(null);
     }
 
-    protected void createAceWithOrderBy(String orderBy) throws RepositoryException, ValueFormatException,
-            UnsupportedRepositoryOperationException, PathNotFoundException, AccessDeniedException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+    protected void createAceWithOrderBy(String orderBy)
+            throws RepositoryException, ValueFormatException, UnsupportedRepositoryOperationException,
+                    PathNotFoundException, AccessDeniedException {
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
@@ -817,40 +905,51 @@ public class DefaultContentCreatorTest {
         List<LocalPrivilege> list = new ArrayList<>();
         LocalPrivilege readLp = new LocalPrivilege(PrivilegeConstants.JCR_READ);
         readLp.setAllow(true);
-        readLp.setAllowRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
+        readLp.setAllowRestrictions(
+                Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
         list.add(readLp);
         LocalPrivilege writeLp = new LocalPrivilege(PrivilegeConstants.JCR_WRITE);
         writeLp.setDeny(true);
-        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
+        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(
+                AccessControlConstants.REP_ITEM_NAMES,
+                vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
         list.add(writeLp);
         contentCreator.createAce(userName, list, null);
         contentCreator.createAce(groupName, list, orderBy);
 
         contentCreator.finishNode();
 
-        //verify ACE was set.
+        // verify ACE was set.
         List<AccessControlEntry> allEntries = allEntries();
         assertEquals(4, allEntries.size());
-        assertAce(allEntries.get(0), userName,
+        assertAce(
+                allEntries.get(0),
+                userName,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"name1", "name2"}}); // RestrictionValues
-        assertAce(allEntries.get(1), userName,
+                new String[][] {new String[] {"name1", "name2"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(1),
+                userName,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_GLOB}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
-        assertAce(allEntries.get(2), groupName,
+                new String[][] {new String[] {"glob1allow"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(2),
+                groupName,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"name1", "name2"}}); // RestrictionValues
-        assertAce(allEntries.get(3), groupName,
+                new String[][] {new String[] {"name1", "name2"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(3),
+                groupName,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_GLOB}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
+                new String[][] {new String[] {"glob1allow"}}); // RestrictionValues
     }
 
     @Test
@@ -860,8 +959,7 @@ public class DefaultContentCreatorTest {
 
     @Test
     public void createAceWithOrderByFirst() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
@@ -873,40 +971,51 @@ public class DefaultContentCreatorTest {
         List<LocalPrivilege> list = new ArrayList<>();
         LocalPrivilege readLp = new LocalPrivilege(PrivilegeConstants.JCR_READ);
         readLp.setAllow(true);
-        readLp.setAllowRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
+        readLp.setAllowRestrictions(
+                Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
         list.add(readLp);
         LocalPrivilege writeLp = new LocalPrivilege(PrivilegeConstants.JCR_WRITE);
         writeLp.setDeny(true);
-        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
+        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(
+                AccessControlConstants.REP_ITEM_NAMES,
+                vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
         list.add(writeLp);
         contentCreator.createAce(userName, list, null);
         contentCreator.createAce(groupName, list, "first");
 
         contentCreator.finishNode();
 
-        //verify ACE was set.
+        // verify ACE was set.
         List<AccessControlEntry> allEntries = allEntries();
         assertEquals(4, allEntries.size());
-        assertAce(allEntries.get(0), groupName,
+        assertAce(
+                allEntries.get(0),
+                groupName,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"name1", "name2"}}); // RestrictionValues
-        assertAce(allEntries.get(1), groupName,
+                new String[][] {new String[] {"name1", "name2"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(1),
+                groupName,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_GLOB}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
-        assertAce(allEntries.get(2), userName,
+                new String[][] {new String[] {"glob1allow"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(2),
+                userName,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"name1", "name2"}}); // RestrictionValues
-        assertAce(allEntries.get(3), userName,
+                new String[][] {new String[] {"name1", "name2"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(3),
+                userName,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_GLOB}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
+                new String[][] {new String[] {"glob1allow"}}); // RestrictionValues
     }
 
     @Test
@@ -916,8 +1025,7 @@ public class DefaultContentCreatorTest {
 
     @Test
     public void createAceWithOrderByAfter() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
@@ -932,11 +1040,14 @@ public class DefaultContentCreatorTest {
         List<LocalPrivilege> list = new ArrayList<>();
         LocalPrivilege readLp = new LocalPrivilege(PrivilegeConstants.JCR_READ);
         readLp.setAllow(true);
-        readLp.setAllowRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
+        readLp.setAllowRestrictions(
+                Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
         list.add(readLp);
         LocalPrivilege writeLp = new LocalPrivilege(PrivilegeConstants.JCR_WRITE);
         writeLp.setDeny(true);
-        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
+        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(
+                AccessControlConstants.REP_ITEM_NAMES,
+                vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
         list.add(writeLp);
         contentCreator.createAce(userName, list, null);
         contentCreator.createAce(userName2, list, null);
@@ -944,45 +1055,56 @@ public class DefaultContentCreatorTest {
 
         contentCreator.finishNode();
 
-        //verify ACE was set.
+        // verify ACE was set.
         List<AccessControlEntry> allEntries = allEntries();
         assertEquals(6, allEntries.size());
-        assertAce(allEntries.get(0), userName,
+        assertAce(
+                allEntries.get(0),
+                userName,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"name1", "name2"}}); // RestrictionValues
-        assertAce(allEntries.get(1), userName,
+                new String[][] {new String[] {"name1", "name2"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(1),
+                userName,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_GLOB}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
-        assertAce(allEntries.get(2), groupName,
+                new String[][] {new String[] {"glob1allow"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(2),
+                groupName,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"name1", "name2"}}); // RestrictionValues
-        assertAce(allEntries.get(3), groupName,
+                new String[][] {new String[] {"name1", "name2"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(3),
+                groupName,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_GLOB}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
-        assertAce(allEntries.get(4), userName2,
+                new String[][] {new String[] {"glob1allow"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(4),
+                userName2,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"name1", "name2"}}); // RestrictionValues
-        assertAce(allEntries.get(5), userName2,
+                new String[][] {new String[] {"name1", "name2"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(5),
+                userName2,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_GLOB}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
+                new String[][] {new String[] {"glob1allow"}}); // RestrictionValues
     }
 
     @Test
     public void createAceWithOrderByBefore() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
@@ -994,46 +1116,56 @@ public class DefaultContentCreatorTest {
         List<LocalPrivilege> list = new ArrayList<>();
         LocalPrivilege readLp = new LocalPrivilege(PrivilegeConstants.JCR_READ);
         readLp.setAllow(true);
-        readLp.setAllowRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
+        readLp.setAllowRestrictions(
+                Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
         list.add(readLp);
         LocalPrivilege writeLp = new LocalPrivilege(PrivilegeConstants.JCR_WRITE);
         writeLp.setDeny(true);
-        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
+        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(
+                AccessControlConstants.REP_ITEM_NAMES,
+                vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
         list.add(writeLp);
         contentCreator.createAce(userName, list, null);
         contentCreator.createAce(groupName, list, String.format("before %s", userName));
 
         contentCreator.finishNode();
 
-        //verify ACE was set.
+        // verify ACE was set.
         List<AccessControlEntry> allEntries = allEntries();
         assertEquals(4, allEntries.size());
-        assertAce(allEntries.get(0), groupName,
+        assertAce(
+                allEntries.get(0),
+                groupName,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"name1", "name2"}}); // RestrictionValues
-        assertAce(allEntries.get(1), groupName,
+                new String[][] {new String[] {"name1", "name2"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(1),
+                groupName,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_GLOB}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
-        assertAce(allEntries.get(2), userName,
+                new String[][] {new String[] {"glob1allow"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(2),
+                userName,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"name1", "name2"}}); // RestrictionValues
-        assertAce(allEntries.get(3), userName,
+                new String[][] {new String[] {"name1", "name2"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(3),
+                userName,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_GLOB}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
+                new String[][] {new String[] {"glob1allow"}}); // RestrictionValues
     }
 
     @Test
     public void createAceWithOrderByAfterInvalid() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
@@ -1042,11 +1174,14 @@ public class DefaultContentCreatorTest {
         List<LocalPrivilege> list = new ArrayList<>();
         LocalPrivilege readLp = new LocalPrivilege(PrivilegeConstants.JCR_READ);
         readLp.setAllow(true);
-        readLp.setAllowRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
+        readLp.setAllowRestrictions(
+                Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
         list.add(readLp);
         LocalPrivilege writeLp = new LocalPrivilege(PrivilegeConstants.JCR_WRITE);
         writeLp.setDeny(true);
-        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
+        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(
+                AccessControlConstants.REP_ITEM_NAMES,
+                vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
         list.add(writeLp);
         assertThrows("No ACE was found for the specified principal: invalid", IllegalArgumentException.class, () -> {
             contentCreator.createAce(userName, list, "after invalid");
@@ -1054,15 +1189,14 @@ public class DefaultContentCreatorTest {
 
         contentCreator.finishNode();
 
-        //verify ACE was set.
+        // verify ACE was set.
         List<AccessControlEntry> allEntries = allEntries();
         assertEquals(0, allEntries.size());
     }
 
     @Test
     public void createAceWithOrderByBeforeInvalid() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
@@ -1071,11 +1205,14 @@ public class DefaultContentCreatorTest {
         List<LocalPrivilege> list = new ArrayList<>();
         LocalPrivilege readLp = new LocalPrivilege(PrivilegeConstants.JCR_READ);
         readLp.setAllow(true);
-        readLp.setAllowRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
+        readLp.setAllowRestrictions(
+                Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
         list.add(readLp);
         LocalPrivilege writeLp = new LocalPrivilege(PrivilegeConstants.JCR_WRITE);
         writeLp.setDeny(true);
-        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
+        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(
+                AccessControlConstants.REP_ITEM_NAMES,
+                vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
         list.add(writeLp);
         assertThrows("No ACE was found for the specified principal: invalid", IllegalArgumentException.class, () -> {
             contentCreator.createAce(userName, list, "before invalid");
@@ -1083,15 +1220,14 @@ public class DefaultContentCreatorTest {
 
         contentCreator.finishNode();
 
-        //verify ACE was set.
+        // verify ACE was set.
         List<AccessControlEntry> allEntries = allEntries();
         assertEquals(0, allEntries.size());
     }
 
     @Test
     public void createAceWithOrderByIndex() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
@@ -1106,11 +1242,14 @@ public class DefaultContentCreatorTest {
         List<LocalPrivilege> list = new ArrayList<>();
         LocalPrivilege readLp = new LocalPrivilege(PrivilegeConstants.JCR_READ);
         readLp.setAllow(true);
-        readLp.setAllowRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
+        readLp.setAllowRestrictions(
+                Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
         list.add(readLp);
         LocalPrivilege writeLp = new LocalPrivilege(PrivilegeConstants.JCR_WRITE);
         writeLp.setDeny(true);
-        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
+        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(
+                AccessControlConstants.REP_ITEM_NAMES,
+                vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
         list.add(writeLp);
         contentCreator.createAce(userName, list, null);
         contentCreator.createAce(userName2, list, null);
@@ -1118,45 +1257,56 @@ public class DefaultContentCreatorTest {
 
         contentCreator.finishNode();
 
-        //verify ACE was set.
+        // verify ACE was set.
         List<AccessControlEntry> allEntries = allEntries();
         assertEquals(6, allEntries.size());
-        assertAce(allEntries.get(0), userName,
+        assertAce(
+                allEntries.get(0),
+                userName,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"name1", "name2"}}); // RestrictionValues
-        assertAce(allEntries.get(1), userName,
+                new String[][] {new String[] {"name1", "name2"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(1),
+                userName,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_GLOB}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
-        assertAce(allEntries.get(2), groupName,
+                new String[][] {new String[] {"glob1allow"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(2),
+                groupName,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"name1", "name2"}}); // RestrictionValues
-        assertAce(allEntries.get(3), groupName,
+                new String[][] {new String[] {"name1", "name2"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(3),
+                groupName,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_GLOB}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
-        assertAce(allEntries.get(4), userName2,
+                new String[][] {new String[] {"glob1allow"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(4),
+                userName2,
                 false, // isAllow
                 new String[] {PrivilegeConstants.JCR_WRITE}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_ITEM_NAMES}, // RestrictionNames
-                new String[][] {new String[]{"name1", "name2"}}); // RestrictionValues
-        assertAce(allEntries.get(5), userName2,
+                new String[][] {new String[] {"name1", "name2"}}); // RestrictionValues
+        assertAce(
+                allEntries.get(5),
+                userName2,
                 true, // isAllow
                 new String[] {PrivilegeConstants.JCR_READ}, // PrivilegeNames
                 new String[] {AccessControlConstants.REP_GLOB}, // RestrictionNames
-                new String[][] {new String[]{"glob1allow"}}); // RestrictionValues
+                new String[][] {new String[] {"glob1allow"}}); // RestrictionValues
     }
 
     @Test
     public void createAceWithOrderByInvalid() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
@@ -1165,11 +1315,14 @@ public class DefaultContentCreatorTest {
         List<LocalPrivilege> list = new ArrayList<>();
         LocalPrivilege readLp = new LocalPrivilege(PrivilegeConstants.JCR_READ);
         readLp.setAllow(true);
-        readLp.setAllowRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
+        readLp.setAllowRestrictions(
+                Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
         list.add(readLp);
         LocalPrivilege writeLp = new LocalPrivilege(PrivilegeConstants.JCR_WRITE);
         writeLp.setDeny(true);
-        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
+        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(
+                AccessControlConstants.REP_ITEM_NAMES,
+                vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
         list.add(writeLp);
         assertThrows("Illegal value for the order parameter: invalid", IllegalArgumentException.class, () -> {
             contentCreator.createAce(userName, list, "invalid");
@@ -1180,8 +1333,7 @@ public class DefaultContentCreatorTest {
 
     @Test
     public void createAceWithOrderByIndexTooLarge() throws RepositoryException {
-        contentCreator.init(createImportOptions(NO_OPTIONS),
-                new HashMap<String, ContentReader>(), null, null);
+        contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
         final String userName = uniqueId();
@@ -1190,11 +1342,14 @@ public class DefaultContentCreatorTest {
         List<LocalPrivilege> list = new ArrayList<>();
         LocalPrivilege readLp = new LocalPrivilege(PrivilegeConstants.JCR_READ);
         readLp.setAllow(true);
-        readLp.setAllowRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
+        readLp.setAllowRestrictions(
+                Collections.singleton(new LocalRestriction(AccessControlConstants.REP_GLOB, val("glob1allow"))));
         list.add(readLp);
         LocalPrivilege writeLp = new LocalPrivilege(PrivilegeConstants.JCR_WRITE);
         writeLp.setDeny(true);
-        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(AccessControlConstants.REP_ITEM_NAMES, vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
+        writeLp.setDenyRestrictions(Collections.singleton(new LocalRestriction(
+                AccessControlConstants.REP_ITEM_NAMES,
+                vals(session.getValueFactory(), PropertyType.NAME, "name1", "name2"))));
         list.add(writeLp);
         assertThrows("Index value is too large: 100", IndexOutOfBoundsException.class, () -> {
             contentCreator.createAce(userName, list, "100");
@@ -1203,14 +1358,16 @@ public class DefaultContentCreatorTest {
         contentCreator.finishNode();
     }
 
-    protected List<AccessControlEntry> allEntries() throws UnsupportedRepositoryOperationException, RepositoryException,
-            PathNotFoundException, AccessDeniedException {
+    protected List<AccessControlEntry> allEntries()
+            throws UnsupportedRepositoryOperationException, RepositoryException, PathNotFoundException,
+                    AccessDeniedException {
         AccessControlManager accessControlManager = AccessControlUtil.getAccessControlManager(session);
         AccessControlPolicy[] policies = accessControlManager.getPolicies(parentNode.getPath());
         List<AccessControlEntry> allEntries = new ArrayList<AccessControlEntry>();
         for (AccessControlPolicy accessControlPolicy : policies) {
             if (accessControlPolicy instanceof AccessControlList) {
-                AccessControlEntry[] accessControlEntries = ((AccessControlList) accessControlPolicy).getAccessControlEntries();
+                AccessControlEntry[] accessControlEntries =
+                        ((AccessControlList) accessControlPolicy).getAccessControlEntries();
                 allEntries.addAll(Arrays.asList(accessControlEntries));
             }
         }

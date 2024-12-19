@@ -18,14 +18,13 @@
  */
 package org.apache.sling.jcr.contentloader;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
-import org.osgi.annotation.versioning.ProviderType;
+import java.io.IOException;
+import java.io.InputStream;
 
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * The <code>ContentImporter</code> service
@@ -48,7 +47,13 @@ public interface ContentImporter {
      * @throws RepositoryException If anything goes wrong accessing the JCR repository
      * @throws IOException If anything goes wrong reading or writing the content
      */
-    void importContent(Node parent, String filename, InputStream contentStream, ImportOptions importOptions, ContentImportListener importListener) throws RepositoryException, IOException;
+    void importContent(
+            Node parent,
+            String filename,
+            InputStream contentStream,
+            ImportOptions importOptions,
+            ContentImportListener importListener)
+            throws RepositoryException, IOException;
 
     /**
      * Import content into the repository by parsing the provided content stream.
@@ -62,6 +67,12 @@ public interface ContentImporter {
      * @throws RepositoryException If anything goes wrong accessing the JCR repository
      * @throws IOException If anything goes wrong reading or writing the content
      */
-    void importContent(Node parent, String name, String contentType, InputStream contentStream, ImportOptions importOptions, ContentImportListener importListener) throws RepositoryException, IOException;
-
+    void importContent(
+            Node parent,
+            String name,
+            String contentType,
+            InputStream contentStream,
+            ImportOptions importOptions,
+            ContentImportListener importListener)
+            throws RepositoryException, IOException;
 }

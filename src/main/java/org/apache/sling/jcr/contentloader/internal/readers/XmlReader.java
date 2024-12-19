@@ -18,6 +18,16 @@
  */
 package org.apache.sling.jcr.contentloader.internal.readers;
 
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.xml.transform.Source;
+import javax.xml.transform.Templates;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
+
 import java.io.BufferedInputStream;
 import java.io.Closeable;
 import java.io.File;
@@ -38,16 +48,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.xml.transform.Source;
-import javax.xml.transform.Templates;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
 
 import org.apache.sling.jcr.contentloader.ContentCreator;
 import org.apache.sling.jcr.contentloader.ContentReader;
@@ -99,9 +99,14 @@ import org.xmlpull.v1.XmlPullParserException;
  * {@link org.apache.sling.jcr.contentloader.internal.readers.XmlReader.FileDescription}
  * <code>&lt;nt:file&gt;</code> element.
  */
-@Component(service = ContentReader.class, property = { Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
-        ContentReader.PROPERTY_EXTENSIONS + "=xml", ContentReader.PROPERTY_TYPES + "=application/xml",
-        ContentReader.PROPERTY_TYPES + "=text/xml" })
+@Component(
+        service = ContentReader.class,
+        property = {
+            Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
+            ContentReader.PROPERTY_EXTENSIONS + "=xml",
+            ContentReader.PROPERTY_TYPES + "=application/xml",
+            ContentReader.PROPERTY_TYPES + "=text/xml"
+        })
 public class XmlReader implements ContentReader {
 
     /*
@@ -138,7 +143,8 @@ public class XmlReader implements ContentReader {
     private static final String ELEM_FILE_NAMESPACE = "http://www.jcp.org/jcr/nt/1.0";
     private static final String ELEM_FILE_NAME = "file";
 
-    private static final String INVALID_XML_UNEXPECTED_ELEMENT = "XML file does not seem to contain valid content xml. Unexpected %s element in : %s";
+    private static final String INVALID_XML_UNEXPECTED_ELEMENT =
+            "XML file does not seem to contain valid content xml. Unexpected %s element in : %s";
     private static final String INVALID_XML_ELEMENT_NOT_ALLOWED = "Element is not allowed at this location: %s in %s";
 
     private KXmlParser xmlParser;
@@ -163,7 +169,7 @@ public class XmlReader implements ContentReader {
     @Override
     public synchronized void parse(final URL url, final ContentCreator creator)
             throws IOException, RepositoryException {
-        
+
         try (BufferedInputStream bufferedInput = new BufferedInputStream(url.openStream())) {
             // We need to buffer input, so that we can reset the stream if we encounter an
             // XSL stylesheet reference
@@ -175,7 +181,7 @@ public class XmlReader implements ContentReader {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * org.apache.sling.jcr.contentloader.ContentReader#parse(java.io.InputStream,
      * org.apache.sling.jcr.contentloader.ContentCreator)
@@ -223,15 +229,14 @@ public class XmlReader implements ContentReader {
                     // XSL
                     bufferedInput.reset();
                     // Pipe the XML input through the XSL transformer
-                    XslTransformerStream transformerStream = new XslTransformerStream(bufferedInput,
-                            pi.getAttribute(HREF_ATTRIBUTE), xmlLocation);
+                    XslTransformerStream transformerStream =
+                            new XslTransformerStream(bufferedInput, pi.getAttribute(HREF_ATTRIBUTE), xmlLocation);
                     // Start the transformer thread
                     transformerStream.startTransform();
                     // Re-run the XML parser, now with the transformed XML
                     parseInternal(transformerStream, creator, xmlLocation);
                     transformerStream.close();
                     return;
-
                 }
             }
             if (eventType == XmlPullParser.START_TAG) {
@@ -280,7 +285,9 @@ public class XmlReader implements ContentReader {
                 if (ELEM_PROPERTY.equals(qName)) {
                     if (currentProperty != null) {
                         if (currentProperty.getName() == null) {
-                            throw new IOException(String.format("XML file does not seem to contain valid content xml. Expected %s element for property in : %s", ELEM_NAME, xmlLocation));
+                            throw new IOException(String.format(
+                                    "XML file does not seem to contain valid content xml. Expected %s element for property in : %s",
+                                    ELEM_NAME, xmlLocation));
                         }
                         currentProperty = PropertyDescription.create(currentProperty, creator);
                     }
@@ -350,7 +357,7 @@ public class XmlReader implements ContentReader {
 
         /**
          * Instantiate the XslTransformerStream.
-         * 
+         *
          * @param inputXml
          *            XML to be transformed.
          * @param xslHref
@@ -370,34 +377,37 @@ public class XmlReader implements ContentReader {
         /**
          * Starts the XSL transformer in a new thread, so that it can pipe its output to
          * our <code>PipedInputStream</code>.
-         * 
+         *
          * @throws IOException
          */
         public void startTransform() throws IOException {
             final URL xslResource = new URL(xmlLocation, this.xslHref);
 
-            transformerThread = new Thread(() -> {
-                try {
-                    Source xml = new StreamSource(inputXml);
-                    Source xsl = new StreamSource(xslResource.toExternalForm());
-                    final StreamResult streamResult;
-                    final Templates templates = TransformerFactory.newInstance().newTemplates(xsl);
-                    streamResult = new StreamResult(pipedOut);
-                    templates.newTransformer().transform(xml, streamResult);
-                } catch (TransformerConfigurationException e) {
-                    throw new RuntimeException("Error initializing XSL transformer", e);
-                } catch (TransformerException e) {
-                    throw new RuntimeException("Error transforming", e);
-                } finally {
-                    closeStream(pipedOut);
-                }
-            }, "XslTransformerThread");
+            transformerThread = new Thread(
+                    () -> {
+                        try {
+                            Source xml = new StreamSource(inputXml);
+                            Source xsl = new StreamSource(xslResource.toExternalForm());
+                            final StreamResult streamResult;
+                            final Templates templates =
+                                    TransformerFactory.newInstance().newTemplates(xsl);
+                            streamResult = new StreamResult(pipedOut);
+                            templates.newTransformer().transform(xml, streamResult);
+                        } catch (TransformerConfigurationException e) {
+                            throw new RuntimeException("Error initializing XSL transformer", e);
+                        } catch (TransformerException e) {
+                            throw new RuntimeException("Error transforming", e);
+                        } finally {
+                            closeStream(pipedOut);
+                        }
+                    },
+                    "XslTransformerThread");
             transformerThread.start();
         }
 
         /**
          * Utility function to close a stream if it is still open.
-         * 
+         *
          * @param closeable
          *            Stream to close
          */
@@ -579,7 +589,6 @@ public class XmlReader implements ContentReader {
         public String getAttribute(String key) {
             return this.attributes.get(key);
         }
-
     }
 
     /**
@@ -589,11 +598,11 @@ public class XmlReader implements ContentReader {
      * <code>lastModified</code>. <br>
      * <br>
      * Example:
-     * 
+     *
      * <pre>
      * &lt;nt:file src="../../image.png" mimeType="image/png" lastModified="1977-06-01T07:00:00+0100" /&gt;
      * </pre>
-     * 
+     *
      * The date format for <code>lastModified</code> is
      * <code>yyyy-MM-dd'T'HH:mm:ssZ</code>. The <code>lastModified</code> attribute
      * is optional. If missing, the last modified date reported by the filesystem
@@ -696,7 +705,7 @@ public class XmlReader implements ContentReader {
         /**
          * Puts values in an <code>AttributeMap</code> by extracting attributes from the
          * <code>xmlParser</code>.
-         * 
+         *
          * @param xmlParser
          *            <code>xmlParser</code> to extract attributes from. The parser must
          *            be in {@link org.xmlpull.v1.XmlPullParser#START_TAG} state.

@@ -27,17 +27,17 @@ import org.osgi.annotation.versioning.ConsumerType;
 @ConsumerType
 public abstract class ImportOptions {
 
-	/**
-	 * Specifies whether imported nodes should overwrite existing nodes.
-	 * NOTE: this means the existing node will be deleted and a new node
-	 * will be created in the same location.
-	 * @return true to overwrite nodes, false otherwise
-	 */
-	public abstract boolean isOverwrite();
-	
-	   /**
+    /**
+     * Specifies whether imported nodes should overwrite existing nodes.
+     * NOTE: this means the existing node will be deleted and a new node
+     * will be created in the same location.
+     * @return true to overwrite nodes, false otherwise
+     */
+    public abstract boolean isOverwrite();
+
+    /**
      * Specifies whether imported nodes should merge with existing nodes.
-     * NOTE: this means the existing nodes that are not imported will  be 
+     * NOTE: this means the existing nodes that are not imported will  be
      * deleted.
      * @return true to overwrite nodes, false otherwise
      */
@@ -45,13 +45,13 @@ public abstract class ImportOptions {
         return false;
     }
 
-	/**
-	 * Specifies whether imported properties should overwrite existing properties.
-	 * @return true to overwrite node properties, false otherwise
-	 */
-	public abstract boolean isPropertyOverwrite();
+    /**
+     * Specifies whether imported properties should overwrite existing properties.
+     * @return true to overwrite node properties, false otherwise
+     */
+    public abstract boolean isPropertyOverwrite();
 
-   /**
+    /**
      * Specifies whether imported properties should merge with existing properties.
      * NOTE: this means that properties that are not imported
      * will be removed
@@ -60,40 +60,39 @@ public abstract class ImportOptions {
     public boolean isPropertyMerge() {
         return false;
     }
-    
-	/**
-	 * Specifies whether versionable nodes is automatically checked in at the
-	 * end of the import operation.
-	 * @return true to checkin the versionable nodes, false otherwise
-	 */
-	public abstract boolean isCheckin();
-
-	/**
-	 * Specifies whether versionable nodes is automatically checked out when
-	 * necessary.
-	 * @return true to checkout the versionable nodes, false otherwise
-     * @since 2.1.4
-	 */
-	public boolean isAutoCheckout() {
-		return true;
-	}
-
-	/**
-	 * Check if the content reader for the given file extension should
-	 * be ignored.
-	 *
-	 * @param extension the extension to check
-	 * @return true to ignore the reader, false otherwise
-	 */
-	public abstract boolean isIgnoredImportProvider(String extension);
 
     /**
-     * Check if the given entry name should require a matching registered 
+     * Specifies whether versionable nodes is automatically checked in at the
+     * end of the import operation.
+     * @return true to checkin the versionable nodes, false otherwise
+     */
+    public abstract boolean isCheckin();
+
+    /**
+     * Specifies whether versionable nodes is automatically checked out when
+     * necessary.
+     * @return true to checkout the versionable nodes, false otherwise
+     * @since 2.1.4
+     */
+    public boolean isAutoCheckout() {
+        return true;
+    }
+
+    /**
+     * Check if the content reader for the given file extension should
+     * be ignored.
+     *
+     * @param extension the extension to check
+     * @return true to ignore the reader, false otherwise
+     */
+    public abstract boolean isIgnoredImportProvider(String extension);
+
+    /**
+     * Check if the given entry name should require a matching registered
      * import provider.
      *
      * @param name the entry name to check
      * @return true to require an import provider, false otherwise
      */
     public abstract boolean isImportProviderRequired(@NotNull String name);
-
 }

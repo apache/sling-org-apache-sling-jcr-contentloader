@@ -18,19 +18,6 @@
  */
 package org.apache.sling.jcr.contentloader.internal;
 
-import static java.util.Collections.singletonMap;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import java.lang.annotation.Annotation;
-import java.net.URL;
-import java.security.Principal;
-
 import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
@@ -42,6 +29,10 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
+
+import java.lang.annotation.Annotation;
+import java.net.URL;
+import java.security.Principal;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
@@ -65,6 +56,15 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.osgi.framework.Bundle;
 
+import static java.util.Collections.singletonMap;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 public class BundleContentLoaderTest {
 
     @Rule
@@ -75,6 +75,7 @@ public class BundleContentLoaderTest {
     private ContentReaderWhiteboard whiteboard;
 
     private static final String CUSTOM_PRIVILEGE_NAME = "customPrivilege";
+
     @Before
     public void prepareContentLoader() throws Exception {
         // prepare content readers
@@ -90,10 +91,10 @@ public class BundleContentLoaderTest {
         bundleHelper = context.registerInjectActivateService(new BundleContentLoaderListener());
 
         whiteboard = context.getService(ContentReaderWhiteboard.class);
-
     }
 
-    private static Privilege getOrRegisterCustomPrivilege(Session session) throws AccessDeniedException, NamespaceException, RepositoryException {
+    private static Privilege getOrRegisterCustomPrivilege(Session session)
+            throws AccessDeniedException, NamespaceException, RepositoryException {
         // register custom privilege
         Workspace wsp = session.getWorkspace();
         if (!(wsp instanceof JackrabbitWorkspace)) {
@@ -111,17 +112,18 @@ public class BundleContentLoaderTest {
         // use JCR API to add some node and acl
         Session session = context.resourceResolver().adaptTo(Session.class);
         Privilege customPrivilege = getOrRegisterCustomPrivilege(session);
-        Privilege[] customPrivilegeSingleItemArray = new Privilege[]{ customPrivilege };
+        Privilege[] customPrivilegeSingleItemArray = new Privilege[] {customPrivilege};
 
         JcrUtils.getOrCreateByPath(path, NodeType.NT_FOLDER, session);
-        
+
         AccessControlManager acMgr = session.getAccessControlManager();
-        AccessControlList acl = (AccessControlList)acMgr.getApplicablePolicies(path).nextAccessControlPolicy();
+        AccessControlList acl =
+                (AccessControlList) acMgr.getApplicablePolicies(path).nextAccessControlPolicy();
         Principal everyone = EveryonePrincipal.getInstance();
         assertTrue(acl.addAccessControlEntry(everyone, customPrivilegeSingleItemArray));
         AccessControlEntry[] expectedAces = acl.getAccessControlEntries();
         acMgr.setPolicy(path, acl);
-        
+
         session.save();
         return expectedAces;
     }
@@ -130,13 +132,15 @@ public class BundleContentLoaderTest {
         Session session = context.resourceResolver().adaptTo(Session.class);
         session.refresh(false);
         assertTrue(session.nodeExists(path));
-        assertEquals(JcrConstants.NT_FOLDER, session.getNode(path).getPrimaryNodeType().getName());
+        assertEquals(
+                JcrConstants.NT_FOLDER,
+                session.getNode(path).getPrimaryNodeType().getName());
         AccessControlManager acMgr = session.getAccessControlManager();
-        AccessControlList acl = (AccessControlList)acMgr.getPolicies(path)[0];
+        AccessControlList acl = (AccessControlList) acMgr.getPolicies(path)[0];
         AccessControlEntry[] aces = acl.getAccessControlEntries();
         assertThat(aces, Matchers.arrayContaining(expectedAces));
     }
- 
+
     @Test
     public void loadContentOverwriteWithoutPath() throws Exception {
         AccessControlEntry[] expectedAces = createFolderNodeAndACL("/apps/child");
@@ -206,8 +210,8 @@ public class BundleContentLoaderTest {
     @Test
     public void loadContentWithExcludes() throws Exception {
 
-        BundleContentLoader contentLoader = new BundleContentLoader(bundleHelper, whiteboard,
-                new BundleContentLoaderConfiguration() {
+        BundleContentLoader contentLoader =
+                new BundleContentLoader(bundleHelper, whiteboard, new BundleContentLoaderConfiguration() {
                     @Override
                     public Class<? extends Annotation> annotationType() {
                         return null;
@@ -215,30 +219,28 @@ public class BundleContentLoaderTest {
 
                     @Override
                     public String[] includedTargets() {
-                        return new String[] { "^/.*$" };
+                        return new String[] {"^/.*$"};
                     }
 
                     @Override
                     public String[] excludedTargets() {
-                        return new String[] { "^/libs.*$" };
+                        return new String[] {"^/libs.*$"};
                     }
-
                 });
 
-        Bundle mockBundle = newBundleWithInitialContent(context, 
-                "SLING-INF/libs/app;path:=/libs/app,SLING-INF/content/app;path:=/content/app");
+        Bundle mockBundle = newBundleWithInitialContent(
+                context, "SLING-INF/libs/app;path:=/libs/app,SLING-INF/content/app;path:=/content/app");
 
         contentLoader.registerBundle(context.resourceResolver().adaptTo(Session.class), mockBundle, false);
 
         assertThat("Excluded resource imported", context.resourceResolver().getResource("/libs/app"), nullValue());
     }
 
-
     @Test
     public void loadContentWithNullValue() throws Exception {
 
-        BundleContentLoader contentLoader = new BundleContentLoader(bundleHelper, whiteboard,
-                new BundleContentLoaderConfiguration() {
+        BundleContentLoader contentLoader =
+                new BundleContentLoader(bundleHelper, whiteboard, new BundleContentLoaderConfiguration() {
                     @Override
                     public Class<? extends Annotation> annotationType() {
                         return null;
@@ -246,30 +248,28 @@ public class BundleContentLoaderTest {
 
                     @Override
                     public String[] includedTargets() {
-                        return new String[] { "^/.*$" };
+                        return new String[] {"^/.*$"};
                     }
 
                     @Override
                     public String[] excludedTargets() {
                         return null;
                     }
-
                 });
 
-        Bundle mockBundle = newBundleWithInitialContent(context,
-                "SLING-INF/libs/app;path:=/libs/app,SLING-INF/content/app;path:=/content/app");
+        Bundle mockBundle = newBundleWithInitialContent(
+                context, "SLING-INF/libs/app;path:=/libs/app,SLING-INF/content/app;path:=/content/app");
 
         contentLoader.registerBundle(context.resourceResolver().adaptTo(Session.class), mockBundle, false);
 
         assertThat("Excluded resource imported", context.resourceResolver().getResource("/libs/app"), notNullValue());
     }
 
-
     @Test
     public void loadContentWithIncludes() throws Exception {
 
-        BundleContentLoader contentLoader = new BundleContentLoader(bundleHelper, whiteboard,
-                new BundleContentLoaderConfiguration() {
+        BundleContentLoader contentLoader =
+                new BundleContentLoader(bundleHelper, whiteboard, new BundleContentLoaderConfiguration() {
                     @Override
                     public Class<? extends Annotation> annotationType() {
                         return null;
@@ -277,22 +277,21 @@ public class BundleContentLoaderTest {
 
                     @Override
                     public String[] includedTargets() {
-                        return new String[] { "^/.*$" };
+                        return new String[] {"^/.*$"};
                     }
 
                     @Override
                     public String[] excludedTargets() {
-                        return new String[] { "^/app.*$" };
+                        return new String[] {"^/app.*$"};
                     }
-
                 });
 
-        Bundle mockBundle = newBundleWithInitialContent(context, 
-                "SLING-INF/libs/app;path:=/libs/app");
+        Bundle mockBundle = newBundleWithInitialContent(context, "SLING-INF/libs/app;path:=/libs/app");
 
         contentLoader.registerBundle(context.resourceResolver().adaptTo(Session.class), mockBundle, false);
 
-        assertThat("Included resource not imported", context.resourceResolver().getResource("/libs/app"), notNullValue());
+        assertThat(
+                "Included resource not imported", context.resourceResolver().getResource("/libs/app"), notNullValue());
     }
 
     @Test
@@ -318,8 +317,8 @@ public class BundleContentLoaderTest {
 
         dumpRepo("/", 2);
 
-        Bundle mockBundle = newBundleWithInitialContent(context, 
-                "SLING-INF/libs/app;path:=/libs/app;ignoreImportProviders:=xml");
+        Bundle mockBundle =
+                newBundleWithInitialContent(context, "SLING-INF/libs/app;path:=/libs/app;ignoreImportProviders:=xml");
 
         contentLoader.registerBundle(context.resourceResolver().adaptTo(Session.class), mockBundle, false);
 
@@ -333,7 +332,6 @@ public class BundleContentLoaderTest {
         dumpRepo("/", 2);
 
         assertThat("XML file was was not imported", xmlFile, notNullValue());
-
     }
 
     @Test

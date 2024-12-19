@@ -18,11 +18,11 @@
  */
 package org.apache.sling.jcr.contentloader;
 
+import javax.jcr.RepositoryException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-
-import javax.jcr.RepositoryException;
 
 import org.osgi.annotation.versioning.ConsumerType;
 
@@ -51,5 +51,4 @@ public interface ContentReader {
      * @throws IOException If anything goes wrong.
      */
     void parse(InputStream ins, ContentCreator contentCreator) throws IOException, RepositoryException;
-
 }
