@@ -64,7 +64,7 @@ public class BundleContentLoaderListenerTest {
     private Session session;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         // prepare content readers
         context.registerInjectActivateService(JsonReader.class);
         context.registerInjectActivateService(OrderedJsonReader.class);
@@ -87,7 +87,7 @@ public class BundleContentLoaderListenerTest {
     // And more affects BundleContentLoader than BundleContentLoaderListener
 
     @Test
-    public void testBundleResolvedBundleChanged() throws NoSuchFieldException, RepositoryException {
+    public void testBundleResolvedBundleChanged() {
         final Bundle bundle = createNewBundle();
         @SuppressWarnings("unchecked")
         final List<Bundle> delayedBundles =

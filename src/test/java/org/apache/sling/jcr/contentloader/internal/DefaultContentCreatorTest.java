@@ -18,22 +18,17 @@
  */
 package org.apache.sling.jcr.contentloader.internal;
 
-import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -175,16 +170,16 @@ public class DefaultContentCreatorTest {
         final String propertyValue = "bar";
         final String rootNodeName = uniqueId();
         final String uuid = "1b8c88d37f0000020084433d3af4941f";
-        final Session session = mockery.mock(Session.class);
+        final Session mockSession = mockery.mock(Session.class);
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
         parentNode = mockery.mock(Node.class);
         prop = mockery.mock(Property.class);
 
         this.mockery.checking(new Expectations() {
             {
-                oneOf(session).itemExists(with(any(String.class)));
+                oneOf(mockSession).itemExists(with(any(String.class)));
                 will(returnValue(true));
-                oneOf(session).getItem(with(any(String.class)));
+                oneOf(mockSession).getItem(with(any(String.class)));
                 will(returnValue(parentNode));
 
                 exactly(2).of(parentNode).getPath();
@@ -196,7 +191,7 @@ public class DefaultContentCreatorTest {
                 oneOf(parentNode).getIdentifier();
                 will(returnValue(uuid));
                 oneOf(parentNode).getSession();
-                will(returnValue(session));
+                will(returnValue(mockSession));
                 oneOf(parentNode).hasProperty(with(any(String.class)));
                 oneOf(parentNode).setProperty(propertyName, uuid, PropertyType.REFERENCE);
                 oneOf(parentNode).getProperty(with(any(String.class)));
@@ -253,7 +248,7 @@ public class DefaultContentCreatorTest {
     }
 
     @Test
-    public void testCreateDateProperty() throws RepositoryException, ParseException {
+    public void testCreateDateProperty() throws RepositoryException {
         final String propertyName = "dateProp";
         final String propertyValue = "2012-10-01T09:45:00.000+02:00";
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
@@ -280,7 +275,7 @@ public class DefaultContentCreatorTest {
     }
 
     @Test
-    public void testCreatePropertyWithNewPropertyType() throws RepositoryException, ParseException {
+    public void testCreatePropertyWithNewPropertyType() throws RepositoryException {
         final String propertyName = "foo";
         final String propertyValue = "bar";
         final Integer propertyType = -1;
@@ -377,7 +372,7 @@ public class DefaultContentCreatorTest {
     }
 
     @Test
-    public void addMixinsToExistingNode() throws RepositoryException, NoSuchFieldException {
+    public void addMixinsToExistingNode() throws RepositoryException {
         final String newNodeName = uniqueId();
         final String[] mixins = {"mix:versionable"};
         @SuppressWarnings("unchecked")
@@ -441,7 +436,7 @@ public class DefaultContentCreatorTest {
     }
 
     @Test
-    public void createReferenceProperty() throws RepositoryException, NoSuchFieldException {
+    public void createReferenceProperty() throws RepositoryException {
         final String propName = uniqueId();
         final String[] propValues = {uniqueId(), uniqueId()};
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
@@ -469,7 +464,7 @@ public class DefaultContentCreatorTest {
     }
 
     @Test
-    public void createDateProperty() throws RepositoryException, ParseException {
+    public void createDateProperty() throws RepositoryException {
         final String propName = "dateProp";
         final String[] propValues = {"2012-10-01T09:45:00.000+02:00", "2011-02-13T09:45:00.000+02:00"};
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
@@ -530,7 +525,7 @@ public class DefaultContentCreatorTest {
     // ------DefaultContentCreator#finishNode()------//
 
     @Test
-    public void finishNodeWithMultipleProperty() throws RepositoryException, NoSuchFieldException {
+    public void finishNodeWithMultipleProperty() throws RepositoryException {
         final String propName = uniqueId();
         final String underTestNodeName = uniqueId();
         @SuppressWarnings("unchecked")
@@ -560,7 +555,7 @@ public class DefaultContentCreatorTest {
     }
 
     @Test
-    public void finishNodeWithSingleProperty() throws RepositoryException, NoSuchFieldException {
+    public void finishNodeWithSingleProperty() throws RepositoryException {
         final String propName = uniqueId();
         final String underTestNodeName = uniqueId();
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
@@ -586,7 +581,7 @@ public class DefaultContentCreatorTest {
     }
 
     @Test
-    public void finishNodeWithoutProperties() throws RepositoryException, NoSuchFieldException {
+    public void finishNodeWithoutProperties() throws RepositoryException {
         final String propName = uniqueId();
         final String underTestNodeName = uniqueId();
 
@@ -601,7 +596,7 @@ public class DefaultContentCreatorTest {
     }
 
     @Test
-    public void finishNotReferenceableNode() throws RepositoryException, NoSuchFieldException {
+    public void finishNotReferenceableNode() throws RepositoryException {
         final String propName = uniqueId();
         final String underTestNodeName = uniqueId();
 
@@ -891,9 +886,7 @@ public class DefaultContentCreatorTest {
         createAceWithOrderBy(null);
     }
 
-    protected void createAceWithOrderBy(String orderBy)
-            throws RepositoryException, ValueFormatException, UnsupportedRepositoryOperationException,
-                    PathNotFoundException, AccessDeniedException {
+    protected void createAceWithOrderBy(String orderBy) throws RepositoryException {
         contentCreator.init(createImportOptions(NO_OPTIONS), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, null);
 
@@ -1359,9 +1352,7 @@ public class DefaultContentCreatorTest {
         contentCreator.finishNode();
     }
 
-    protected List<AccessControlEntry> allEntries()
-            throws UnsupportedRepositoryOperationException, RepositoryException, PathNotFoundException,
-                    AccessDeniedException {
+    protected List<AccessControlEntry> allEntries() throws RepositoryException {
         AccessControlManager accessControlManager = AccessControlUtil.getAccessControlManager(session);
         AccessControlPolicy[] policies = accessControlManager.getPolicies(parentNode.getPath());
         List<AccessControlEntry> allEntries = new ArrayList<AccessControlEntry>();

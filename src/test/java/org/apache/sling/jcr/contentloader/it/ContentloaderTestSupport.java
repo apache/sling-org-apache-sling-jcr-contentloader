@@ -104,6 +104,7 @@ public abstract class ContentloaderTestSupport extends TestSupport {
     @Inject
     private HealthCheckExecutor hcExecutor;
 
+    @Override
     public ModifiableCompositeOption baseConfiguration() {
         final String vmOpt = System.getProperty("pax.vm.options");
         VMOption vmOption = null;
@@ -207,12 +208,12 @@ public abstract class ContentloaderTestSupport extends TestSupport {
 
                         // SLING-9735 - add server user for the o.a.s.jcr.contentloader bundle
                         factoryConfiguration("org.apache.sling.jcr.repoinit.RepositoryInitializer")
-                                .put("scripts", new String[] {
-                                    "create service user sling-jcr-content-loader\n" + "\n"
-                                            + "set ACL for sling-jcr-content-loader\n"
-                                            + "    allow   jcr:all    on /\n"
-                                            + "end"
-                                })
+                                .put("scripts", new String[] {"""
+                                            create service user sling-jcr-content-loader
+                                            set ACL for sling-jcr-content-loader
+                                                allow   jcr:all    on /
+                                            end
+                                        """})
                                 .asOption(),
                         factoryConfiguration("org.apache.sling.serviceusermapping.impl.ServiceUserMapperImpl.amended")
                                 .put(
