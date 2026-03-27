@@ -23,9 +23,10 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeType;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.Multimap;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,9 +54,8 @@ public class I18nInitialContentIT extends ContentloaderTestSupport {
     @Configuration
     public Option[] configuration() throws IOException {
         final String header = DEFAULT_PATH_IN_BUNDLE + ";ignoreImportProviders:=json;path:=" + CONTENT_ROOT_PATH;
-        final Multimap<String, String> content = ImmutableListMultimap.of(
-                DEFAULT_PATH_IN_BUNDLE, "i18n/en.json",
-                DEFAULT_PATH_IN_BUNDLE, "i18n/en.json.xml");
+        final Map<String, Collection<String>> content =
+                Map.of(DEFAULT_PATH_IN_BUNDLE, List.of("i18n/en.json", "i18n/en.json.xml"));
         final Option bundle = buildInitialContentBundle(header, content);
         // configure the health check component
         Option hcConfig = factoryConfiguration("org.apache.sling.jcr.contentloader.hc.BundleContentLoadedCheck")

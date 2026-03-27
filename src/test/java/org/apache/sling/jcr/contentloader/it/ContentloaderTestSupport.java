@@ -29,18 +29,17 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.collect.Multimap;
 import org.apache.felix.hc.api.Result;
 import org.apache.felix.hc.api.ResultLog;
 import org.apache.felix.hc.api.execution.HealthCheckExecutionResult;
 import org.apache.felix.hc.api.execution.HealthCheckExecutor;
 import org.apache.felix.hc.api.execution.HealthCheckSelector;
 import org.apache.sling.jcr.api.SlingRepository;
-import org.apache.sling.resource.presence.ResourcePresence;
 import org.apache.sling.testing.paxexam.SlingOptions;
 import org.apache.sling.testing.paxexam.TestSupport;
 import org.awaitility.Awaitility;
@@ -49,9 +48,8 @@ import org.junit.Before;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.options.ModifiableCompositeOption;
 import org.ops4j.pax.exam.options.extra.VMOption;
-import org.ops4j.pax.exam.util.Filter;
-import org.ops4j.pax.tinybundles.core.TinyBundle;
-import org.ops4j.pax.tinybundles.core.TinyBundles;
+import org.ops4j.pax.tinybundles.TinyBundle;
+import org.ops4j.pax.tinybundles.TinyBundles;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
@@ -59,8 +57,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.felix.hc.api.FormattingResultLog.msHumanReadable;
+import static org.apache.sling.testing.paxexam.SlingOptions.jackson;
+import static org.apache.sling.testing.paxexam.SlingOptions.paxLoggingApi;
 import static org.apache.sling.testing.paxexam.SlingOptions.slingQuickstartOakTar;
-import static org.apache.sling.testing.paxexam.SlingOptions.slingResourcePresence;
+import static org.apache.sling.testing.paxexam.SlingOptions.versionResolver;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -69,9 +69,10 @@ import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 import static org.ops4j.pax.exam.CoreOptions.streamBundle;
+import static org.ops4j.pax.exam.CoreOptions.systemProperty;
 import static org.ops4j.pax.exam.CoreOptions.when;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfiguration;
-import static org.ops4j.pax.tinybundles.core.TinyBundles.withBnd;
+import static org.ops4j.pax.tinybundles.TinyBundles.bndBuilder;
 
 public abstract class ContentloaderTestSupport extends TestSupport {
 
@@ -101,10 +102,6 @@ public abstract class ContentloaderTestSupport extends TestSupport {
     ContentloaderTestSupport() {}
 
     @Inject
-    @Filter(value = "(path=" + CONTENT_ROOT_PATH + ")")
-    private ResourcePresence resourcePresence;
-
-    @Inject
     private HealthCheckExecutor hcExecutor;
 
     public ModifiableCompositeOption baseConfiguration() {
@@ -114,6 +111,64 @@ public abstract class ContentloaderTestSupport extends TestSupport {
             vmOption = new VMOption(vmOpt);
         }
 
+        // SLING-13148 bump to a compatible version of commons-lang3
+        //  NOTE: remove this when the versionResolver defaults to this version or later
+        versionResolver.setVersionFromProject("org.apache.commons", "commons-lang3");
+
+        // SLING-13148 switch to a version of oak compatible with java 17/21
+        //  NOTE: remove this block when the versionResolver defaults to this version or later
+        String oakVersion = "1.74.0";
+        versionResolver.setVersion("org.apache.sling", "org.apache.sling.jcr.oak.server", "1.4.4");
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-api", oakVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-authorization-principalbased", oakVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-blob", oakVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-blob-plugins", oakVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-commons", oakVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-core", oakVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-core-spi", oakVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-jcr", oakVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-lucene", oakVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-query-spi", oakVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-security-spi", oakVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-segment-tar", oakVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-store-composite", oakVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-store-document", oakVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-store-spi", oakVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "oak-jackrabbit-api", oakVersion);
+        versionResolver.setVersion("commons-codec", "commons-codec", "1.21.0");
+        versionResolver.setVersion("commons-io", "commons-io", "2.21.0");
+        versionResolver.setVersion("org.apache.commons", "commons-text", "1.15.0");
+        versionResolver.setVersion("org.apache.commons", "commons-lang3", "3.20.0");
+
+        // SLING-13148 switch to a compatible version of jackson
+        //  NOTE: remove this block when the versionResolver defaults to this version or later
+        String jacksonVersion = "2.21.1";
+        versionResolver.setVersion("com.fasterxml.jackson.core", "jackson-annotations", "2.21");
+        versionResolver.setVersion("com.fasterxml.jackson.core", "jackson-core", jacksonVersion);
+        versionResolver.setVersion("com.fasterxml.jackson.core", "jackson-databind", jacksonVersion);
+
+        // SLING-13148 switch to a compatible version of jackrabbit
+        //  NOTE: remove this block when the versionResolver defaults to this version or later
+        String jackrabbitVersion = "2.22.0";
+        versionResolver.setVersion("org.apache.jackrabbit", "jackrabbit-data", jackrabbitVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "jackrabbit-jcr-commons", jackrabbitVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "jackrabbit-jcr-rmi", jackrabbitVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "jackrabbit-spi", jackrabbitVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "jackrabbit-spi-commons", jackrabbitVersion);
+        versionResolver.setVersion("org.apache.jackrabbit", "jackrabbit-webdav", jackrabbitVersion);
+
+        // SLING-13148 switch to 3.x version of sling.api and related dependencies
+        //  NOTE: remove this block when the versionResolver defaults to this version or later
+        versionResolver.setVersionFromProject("org.apache.sling", "org.apache.sling.api");
+        versionResolver.setVersion("org.apache.sling", "org.apache.sling.engine", "3.0.0");
+        versionResolver.setVersion("org.apache.felix", "org.apache.felix.http.servlet-api", "6.1.0");
+        versionResolver.setVersion("org.apache.sling", "org.apache.sling.resourceresolver", "2.0.0");
+        versionResolver.setVersion("org.apache.sling", "org.apache.sling.auth.core", "2.0.0");
+        versionResolver.setVersion("commons-fileupload", "commons-fileupload", "1.6.0");
+        versionResolver.setVersion("org.apache.sling", "org.apache.sling.scripting.spi", "2.0.0");
+        versionResolver.setVersion("org.apache.sling", "org.apache.sling.scripting.core", "3.0.0");
+        versionResolver.setVersion("org.apache.sling", "org.apache.sling.servlets.resolver", "3.0.0");
+
         final Option contentloader = mavenBundle()
                 .groupId("org.apache.sling")
                 .artifactId("org.apache.sling.jcr.contentloader")
@@ -122,11 +177,34 @@ public abstract class ContentloaderTestSupport extends TestSupport {
         return composite(
                         super.baseConfiguration(),
                         when(vmOption != null).useOptions(vmOption),
+                        // SLING-13148 needed by oak 1.5+
+                        //  NOTE: remove this block when the quickstart includes these
+                        jackson(),
+                        mavenBundle("org.apache.jackrabbit", "oak-shaded-guava").version(oakVersion),
+                        mavenBundle("org.apache.commons", "commons-collections4", "4.5.0"),
+                        mavenBundle("org.apache.commons", "commons-text"),
+                        mavenBundle("org.apache.commons", "commons-math3", "3.6.1"),
+
+                        // SLING-13148 add jakarta servlet wrappers required by org.apache.sling.engine 3.x
+                        //  NOTE: remove this block when the quickstart includes this
                         mavenBundle()
-                                .groupId("org.glassfish")
-                                .artifactId("jakarta.json")
-                                .version("2.0.1"),
+                                .groupId("org.apache.felix")
+                                .artifactId("org.apache.felix.http.wrappers")
+                                .version("6.1.0"),
+
+                        // SLING-13148 add jakarta json impl
+                        //  NOTE: remove this block when the quickstart includes this
+                        mavenBundle()
+                                .groupId("org.apache.sling")
+                                .artifactId("org.apache.sling.commons.johnzon")
+                                .version("2.0.0"),
                         quickstart(),
+
+                        // SLING-13148 newer version to provide the 2.x version of slf4j
+                        paxLoggingApi(),
+                        systemProperty("org.ops4j.pax.logging.DefaultServiceLog.level")
+                                .value("INFO"),
+
                         // SLING-9735 - add server user for the o.a.s.jcr.contentloader bundle
                         factoryConfiguration("org.apache.sling.jcr.repoinit.RepositoryInitializer")
                                 .put("scripts", new String[] {
@@ -157,10 +235,15 @@ public abstract class ContentloaderTestSupport extends TestSupport {
                                             + "end"
                                 })
                                 .asOption(),
-                        slingResourcePresence(),
                         junitBundles(),
                         awaitility())
-                .remove(contentloader);
+                .remove(contentloader)
+                // SLING-13148 remove jcr-rmi which isn't used anymore
+                //  NOTE: remove this block when the quickstart no longer includes bundle
+                .remove(mavenBundle()
+                        .groupId("org.apache.jackrabbit")
+                        .artifactId("jackrabbit-jcr-rmi")
+                        .version(versionResolver));
     }
 
     protected ModifiableCompositeOption quickstart() {
@@ -222,6 +305,10 @@ public abstract class ContentloaderTestSupport extends TestSupport {
                     }
                     return true;
                 });
+
+        // SLING-13148 verify the content resource is present
+        session.refresh(false);
+        assertTrue(session.nodeExists(CONTENT_ROOT_PATH));
     }
 
     /**
@@ -273,19 +360,21 @@ public abstract class ContentloaderTestSupport extends TestSupport {
         try (final InputStream is = getClass().getResourceAsStream(resourcePath)) {
             assertNotNull("Expecting resource to be found:" + resourcePath, is);
             logger.info("Adding resource to bundle, path={}, resource={}", pathInBundle, resourcePath);
-            bundle.add(pathInBundle, is);
+            bundle.addResource(pathInBundle, is);
         }
     }
 
-    protected Option buildInitialContentBundle(final String header, final Multimap<String, String> content)
+    protected Option buildInitialContentBundle(final String header, final Map<String, Collection<String>> content)
             throws IOException {
         final TinyBundle bundle = TinyBundles.bundle();
-        bundle.set(Constants.BUNDLE_SYMBOLICNAME, BUNDLE_SYMBOLICNAME);
-        bundle.set(SLING_INITIAL_CONTENT_HEADER, header);
-        for (final Map.Entry<String, String> entry : content.entries()) {
-            addContent(bundle, entry.getKey(), entry.getValue());
+        bundle.setHeader(Constants.BUNDLE_SYMBOLICNAME, BUNDLE_SYMBOLICNAME);
+        bundle.setHeader(SLING_INITIAL_CONTENT_HEADER, header);
+        for (final Map.Entry<String, Collection<String>> entry : content.entrySet()) {
+            for (String resourcePath : entry.getValue()) {
+                addContent(bundle, entry.getKey(), resourcePath);
+            }
         }
-        return streamBundle(bundle.build(withBnd())).start();
+        return streamBundle(bundle.build(bndBuilder())).start();
     }
 
     protected Bundle findBundle(final String symbolicName) {

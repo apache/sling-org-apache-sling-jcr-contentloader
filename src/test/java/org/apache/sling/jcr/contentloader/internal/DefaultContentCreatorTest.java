@@ -44,7 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import junitx.util.PrivateAccessor;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.sling.jcr.base.util.AccessControlUtil;
@@ -328,9 +327,10 @@ public class DefaultContentCreatorTest {
     }
 
     @Test
-    public void createNodeWithoutProvidedNames() throws RepositoryException, NoSuchFieldException {
+    public void createNodeWithoutProvidedNames() throws RepositoryException {
         @SuppressWarnings("unchecked")
-        Deque<Node> nodesStack = (Deque<Node>) PrivateAccessor.getField(contentCreator, "parentNodeStack");
+        Deque<Node> nodesStack =
+                (Deque<Node>) ReflectionTools.getFieldWithReflection(contentCreator, "parentNodeStack", Deque.class);
 
         contentCreator.init(
                 createImportOptions(OVERWRITE_NODE | OVERWRITE_PROPERTIES | AUTO_CHECKOUT),
@@ -381,7 +381,8 @@ public class DefaultContentCreatorTest {
         final String newNodeName = uniqueId();
         final String[] mixins = {"mix:versionable"};
         @SuppressWarnings("unchecked")
-        final List<Node> versionables = (List<Node>) PrivateAccessor.getField(contentCreator, "versionables");
+        final List<Node> versionables =
+                (List<Node>) ReflectionTools.getFieldWithReflection(contentCreator, "versionables", List.class);
 
         contentCreator.init(createImportOptions(CHECK_IN), new HashMap<String, ContentReader>(), null, null);
         contentCreator.prepareParsing(parentNode, DEFAULT_NAME);
@@ -445,8 +446,8 @@ public class DefaultContentCreatorTest {
         final String[] propValues = {uniqueId(), uniqueId()};
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
         @SuppressWarnings("unchecked")
-        final Map<String, String[]> delayedMultipleReferences =
-                (Map<String, String[]>) PrivateAccessor.getField(contentCreator, "delayedMultipleReferences");
+        final Map<String, String[]> delayedMultipleReferences = (Map<String, String[]>)
+                ReflectionTools.getFieldWithReflection(contentCreator, "delayedMultipleReferences", Map.class);
         this.mockery.checking(new Expectations() {
             {
                 oneOf(listener).onCreate(with(any(String.class)));
@@ -533,8 +534,8 @@ public class DefaultContentCreatorTest {
         final String propName = uniqueId();
         final String underTestNodeName = uniqueId();
         @SuppressWarnings("unchecked")
-        final Map<String, List<String>> delayedMultipleReferences =
-                (Map<String, List<String>>) PrivateAccessor.getField(contentCreator, "delayedMultipleReferences");
+        final Map<String, List<String>> delayedMultipleReferences = (Map<String, List<String>>)
+                ReflectionTools.getFieldWithReflection(contentCreator, "delayedMultipleReferences", Map.class);
         final ContentImportListener listener = mockery.mock(ContentImportListener.class);
 
         this.mockery.checking(new Expectations() {

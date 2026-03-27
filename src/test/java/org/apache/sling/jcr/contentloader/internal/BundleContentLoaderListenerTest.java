@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import junitx.util.PrivateAccessor;
 import org.apache.sling.jcr.contentloader.internal.readers.JsonReader;
 import org.apache.sling.jcr.contentloader.internal.readers.OrderedJsonReader;
 import org.apache.sling.jcr.contentloader.internal.readers.XmlReader;
@@ -79,7 +78,8 @@ public class BundleContentLoaderListenerTest {
 
         // register the content loader service
         underTest = context.registerInjectActivateService(new BundleContentLoaderListener());
-        contentLoader = (BundleContentLoader) PrivateAccessor.getField(underTest, "bundleContentLoader");
+        contentLoader =
+                ReflectionTools.getFieldWithReflection(underTest, "bundleContentLoader", BundleContentLoader.class);
     }
 
     // -------BundleContentLoaderListener#bundleChanged(BundleEvent)-------//
@@ -90,9 +90,11 @@ public class BundleContentLoaderListenerTest {
     public void testBundleResolvedBundleChanged() throws NoSuchFieldException, RepositoryException {
         final Bundle bundle = createNewBundle();
         @SuppressWarnings("unchecked")
-        final List<Bundle> delayedBundles = (List<Bundle>) PrivateAccessor.getField(contentLoader, "delayedBundles");
+        final List<Bundle> delayedBundles =
+                (List<Bundle>) ReflectionTools.getFieldWithReflection(contentLoader, "delayedBundles", List.class);
         @SuppressWarnings("unchecked")
-        final Set<String> updatedBundles = (Set<String>) PrivateAccessor.getField(underTest, "updatedBundles");
+        final Set<String> updatedBundles =
+                (Set<String>) ReflectionTools.getFieldWithReflection(underTest, "updatedBundles", Set.class);
 
         updatedBundles.add(bundle.getSymbolicName());
         int updatedBundlesCurrentAmout = updatedBundles.size();

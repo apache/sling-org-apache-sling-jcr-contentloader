@@ -29,6 +29,7 @@ import javax.jcr.security.Privilege;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -36,8 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.Multimap;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -68,7 +67,7 @@ public class SLING8118InitialContentIT extends ContentloaderTestSupport {
     @Configuration
     public Option[] configuration() throws IOException {
         final String header = DEFAULT_PATH_IN_BUNDLE + ";path:=" + CONTENT_ROOT_PATH;
-        final Multimap<String, String> content = ImmutableListMultimap.of(DEFAULT_PATH_IN_BUNDLE, "SLING-8118.json");
+        final Map<String, Collection<String>> content = Map.of(DEFAULT_PATH_IN_BUNDLE, List.of("SLING-8118.json"));
         final Option bundle = buildInitialContentBundle(header, content);
         // configure the health check component
         Option hcConfig = factoryConfiguration("org.apache.sling.jcr.contentloader.hc.BundleContentLoadedCheck")
