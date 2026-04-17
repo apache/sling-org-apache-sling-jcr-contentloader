@@ -252,7 +252,7 @@ class ZipReaderTest {
         try {
             final File finalTempFile = ZipReader.createTempFile();
             tempFile = finalTempFile;
-            try (MockedStatic<Files> filesMock = Mockito.mockStatic(Files.class); ) {
+            try (MockedStatic<Files> filesMock = Mockito.mockStatic(Files.class, CALLS_REAL_METHODS); ) {
                 filesMock
                         .when(() -> Files.delete(finalTempFile.toPath()))
                         .thenThrow(new IOException("simulating ioexception during delete"));
@@ -303,7 +303,7 @@ class ZipReaderTest {
                         }
                     });
 
-            try (MockedStatic<Files> filesMock = Mockito.mockStatic(Files.class); ) {
+            try (MockedStatic<Files> filesMock = Mockito.mockStatic(Files.class, CALLS_REAL_METHODS); ) {
                 filesMock.when(() -> Files.createTempFile("zipentry", ".tmp")).thenReturn(pathMock);
                 IOException ioe = assertThrows(IOException.class, ZipReader::createTempFile);
                 assertEquals(expectedMsg, ioe.getMessage());
